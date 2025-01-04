@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
 
     <application
-        android:label="learning"
+        android:label="Mes tables"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
