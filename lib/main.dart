@@ -212,11 +212,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (_lastAnswer.isEmpty) {
       setState(() {
         _isCorrect = false;
-        _streak = 0;
-        _score = 0;
       });
-      await _audioService.playIncorrect();
-      return;
     }
 
     final correctAnswer = _currentNumber1 * _currentNumber2;
@@ -348,7 +344,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 40,
-                        vertical: 20,
+                        vertical: 10,
                       ),
                       backgroundColor: Colors.blueAccent,
                     ),
@@ -399,7 +395,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             const SizedBox(height: 20),
                             Text(
                               _lastAnswer.isEmpty
-                                  ? 'Vous n\'avez rien proposé...'
+                                  ? 'Vous n\'avez rien proposé, la réponse correcte est ${_currentNumber1 * _currentNumber2}'
                                   : _isCorrect!
                                       ? 'Parfait la réponse est bien : $_lastAnswer'
                                       : 'Non vous avez proposé $_lastAnswer mais la réponse correcte est ${_currentNumber1 * _currentNumber2}',

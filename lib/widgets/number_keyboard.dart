@@ -21,7 +21,7 @@ class NumberKeyboard extends StatelessWidget {
       children: [
         // Input display
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(4),
           margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey),
@@ -32,10 +32,10 @@ class NumberKeyboard extends StatelessWidget {
             children: [
               Text(
                 currentInput,
-                style: const TextStyle(fontSize: 24),
+                style: const TextStyle(fontSize: 20),
               ),
               IconButton(
-                icon: const Icon(Icons.backspace),
+                icon: const Icon(Icons.backspace, size: 20), // Smaller size
                 onPressed: onDelete,
               ),
             ],
@@ -45,8 +45,8 @@ class NumberKeyboard extends StatelessWidget {
         // Number pad
         Wrap(
           alignment: WrapAlignment.center,
-          spacing: 16,
-          runSpacing: 16,
+          spacing: 12,
+          runSpacing: 12,
           children: [
             for (int i = 1; i <= 9; i++)
               SizedBox(
@@ -77,7 +77,7 @@ class NumberKeyboard extends StatelessWidget {
         // Submit button
         SizedBox(
           width: 200,
-          height: 60,
+          height: 50,
           child: ElevatedButton(
             onPressed: onSubmit,
             style: ElevatedButton.styleFrom(
@@ -85,7 +85,7 @@ class NumberKeyboard extends StatelessWidget {
             ),
             child: const Text(
               'Envoyer',
-              style: TextStyle(fontSize: 20),
+              style: TextStyle(fontSize: 20, color: Colors.white),
             ),
           ),
         ),
