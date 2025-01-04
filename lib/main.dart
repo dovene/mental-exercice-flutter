@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:learning/screens/history_page.dart';
 import 'package:learning/screens/settings_page.dart';
+import 'package:learning/services/speech_service.dart';
+import 'package:learning/widgets/countdown_timer.dart';
 import 'package:learning/widgets/number_keyboard.dart';
+import 'package:learning/widgets/score_display.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'models/exercise_history.dart';
 import 'services/database_helper.dart';
 import 'services/audio_service.dart';
@@ -42,7 +42,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  final SpeechToText _speechToText = SpeechToText();
+
   final AudioService _audioService = AudioService();
   Timer? _listenTimer;
   Timer? _countdownTimer;
@@ -61,12 +61,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late Animation<double> _scoreAnimation;
   int _score = 0;
   int _streak = 0;
+  late final SpeechService _speechService;
 
   @override
   void initState() {
     super.initState();
-    _initSpeechToText();
+    _speechService = SpeechService();
+    _speechService.init();
+
     _loadSettings();
+    _initializeScoreController();
+  }
+
+  void _initializeScoreController() {
     _scoreController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -76,39 +83,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+
   @override
   void dispose() {
+    _speechService.dispose();
     _cancelListenTimer();
     _scoreController.dispose();
     super.dispose();
   }
 
-  Future<void> _initSpeechToText() async {
-    await _requestPermissions();
-    bool available = await _speechToText.initialize(
-      debugLogging: true,
-      onError: (error) {
-        debugPrint("Speech recognition error: ${error.errorMsg}");
-        if (error.errorMsg == "error_no_match") {
-          setState(() {
-            _isListening = false;
-            _lastAnswer = ' - Texte non reconnu - ';
-            _checkAnswer();
-          });
-        }
-      },
-      onStatus: (status) {
-        debugPrint("Speech recognition status: $status");
-      },
-    );
-    if (!available) {
-      debugPrint("Speech recognition not available.");
-    }
-  }
-
-  Future<void> _requestPermissions() async {
-    await Permission.microphone.request();
-  }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -171,7 +154,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _listenTimer?.cancel();
   }
 
-
   void _startExercise() async {
     _cancelTimers();
     await _audioService.playStart();
@@ -196,56 +178,34 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void triggerAnswerCheck() {
-    _cancelListenTimer();
-    _stopListening();
+    _speechService.stopListening();
     _checkAnswer();
   }
 
   void _startListening() async {
-    _cancelListenTimer();
-    if (!_isListening) {
-      setState(() {
-        _isListening = true;
-        _lastAnswer = '';
-        _isCorrect = null;
-      });
+    _cancelTimers();
+    _remainingTime = _waitingTime;
+    _startTimer();
 
-      try {
-        await _speechToText.listen(
-          onResult: (result) {
-            debugPrint("Speech result: ${result.recognizedWords}");
-            setState(() {
-              _lastAnswer = result.recognizedWords;
-            });
-
-            if (result.finalResult) {
-              triggerAnswerCheck();
-            }
-          },
-          listenFor: Duration(seconds: _waitingTime),
-          localeId: 'fr_FR',
-        );
-
-        _listenTimer = Timer(Duration(seconds: _waitingTime), () {
-          if (_isListening) {
-            _stopListening();
-            _checkAnswer();
-          }
+    _speechService.startListening(
+      onResult: (recognizedWords) {
+        setState(() {
+          _lastAnswer = recognizedWords;
         });
-
-      } catch (e) {
-        debugPrint("Error during listening: $e");
-        setState(() => _isListening = false);
-      }
-    }
+      },
+      onFinalResult: triggerAnswerCheck,
+      listenDuration: _waitingTime,
+    );
   }
 
+// Also update _stopListening to reset the timer
   void _stopListening() {
-    _cancelListenTimer();
-    if (_isListening) {
-      _speechToText.stop();
-      setState(() => _isListening = false);
-    }
+    _cancelTimers();
+    _speechService.stopListening();
+    setState(() {
+      _remainingTime = 0;
+      _isListening = false;
+    });
   }
 
   void _checkAnswer() async {
@@ -299,18 +259,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       appBar: AppBar(
         title: const Text('Mes tables'),
         actions: [
-          ScaleTransition(
-            scale: _scoreAnimation,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  '$_score',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ),
+          ScoreDisplay(score: _score, animation: _scoreAnimation),
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () => Navigator.push(
@@ -322,16 +271,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => SettingsPage(
-                initialTable: _selectedTable,
-                initialTime: _waitingTime,
-                onSettingsChanged: (table, time) {
-                  setState(() {
-                    _selectedTable = table;
-                    _waitingTime = time;
-                  });
-                },
-              )),
+              MaterialPageRoute(
+                  builder: (context) => SettingsPage(
+                        initialTable: _selectedTable,
+                        initialTime: _waitingTime,
+                        onSettingsChanged: (table, time) {
+                          setState(() {
+                            _selectedTable = table;
+                            _waitingTime = time;
+                          });
+                        },
+                      )),
             ),
           ),
         ],
@@ -339,128 +289,134 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           children: [
-            // Top section with mode switch and timer
+// Top section with mode switch and timer
             Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
+              padding:
+                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Mode switch
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Switch(
-                        value: !_isKeyboardMode,
-                        onChanged: (value) {
-                          setState(() {
-                            _isKeyboardMode = !value;
-                            _cancelTimers();
-                            _stopListening();
-                            _currentInput = '';
-                            _lastAnswer = '';
-                            _isCorrect = null;
-                          });
-                        },
-                      ),
-                      const Text('Mode voix'),
-                    ],
+                  Switch(
+                    value: !_isKeyboardMode,
+                    onChanged: (value) {
+                      setState(() {
+                        _isKeyboardMode = !value;
+                        _cancelTimers();
+                        if (!_isKeyboardMode) {
+                          _speechService.stopListening();
+                        }
+                        _currentInput = '';
+                        _lastAnswer = '';
+                        _isCorrect = null;
+                      });
+                    },
                   ),
-                  // Timer display
-                  if (_remainingTime > 0)
-                    Text(
-                      'Temps restant: $_remainingTime s',
-                      style: const TextStyle(fontSize: 18),
-                    ),
+                  const Text('Mode voix'),
                 ],
               ),
             ),
 
-            // Scrollable middle section
+// Replace the existing timer display with this
+            if (_remainingTime > 0)
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: CountdownTimer(
+                  totalSeconds: _waitingTime,
+                  remainingSeconds: _remainingTime,
+                ),
+              ),
+
+// Question and main button section - Always visible
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  if (_currentNumber1 == 0)
+                    const Text(
+                      'Prêt à réviser les tables ?',
+                      style: TextStyle(fontSize: 24),
+                    )
+                  else
+                    Text(
+                      'Combien font $_currentNumber1 fois $_currentNumber2 ?',
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _startExercise,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 20,
+                      ),
+                      backgroundColor: Colors.blueAccent,
+                    ),
+                    child: Text(
+                      _currentNumber1 == 0 ? 'Démarrer' : 'Nouvelle question',
+                      style: const TextStyle(fontSize: 20, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+// Scrollable feedback section
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (_currentNumber1 == 0)
-                        const Text(
-                          'Prêt à réviser les tables ?',
-                          style: TextStyle(fontSize: 24),
-                        )
-                      else
+                      if (!_isKeyboardMode && _isListening)
                         Column(
                           children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 10),
                             Text(
-                              'Combien font $_currentNumber1 fois $_currentNumber2 ?',
-                              style: const TextStyle(fontSize: 24),
+                              'J\'écoute... ($_lastAnswer)',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        )
+                      else if (_isCorrect != null)
+                        Column(
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 500),
+                              curve: Curves.elasticOut,
+                              transform: Matrix4.identity()
+                                ..scale(_isCorrect! ? 1.2 : 1.0),
+                              child: Icon(
+                                _isCorrect! ? Icons.check_circle : Icons.cancel,
+                                color: _isCorrect! ? Colors.green : Colors.red,
+                                size: 60,
+                              ),
                             ),
                             const SizedBox(height: 20),
-                            if (!_isKeyboardMode && _isListening)
-                              Column(
-                                children: [
-                                  const CircularProgressIndicator(),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'J\'écoute... ($_lastAnswer)',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else if (_isCorrect != null)
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 500),
-                                curve: Curves.elasticOut,
-                                transform: Matrix4.identity()
-                                  ..scale(_isCorrect! ? 1.2 : 1.0),
-                                child: Icon(
-                                  _isCorrect! ? Icons.check_circle : Icons.cancel,
-                                  color: _isCorrect! ? Colors.green : Colors.red,
-                                  size: 60,
-                                ),
-                              ),
-                          ],
-                        ),
-                      const SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: _startExercise,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 20,
-                          ),
-                          backgroundColor: Colors.blueAccent,
-                        ),
-                        child: Text(
-                          _currentNumber1 == 0 ? 'Démarrer' : 'Nouvelle question',
-                          style: const TextStyle(fontSize: 20, color: Colors.white),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      if (_isCorrect != null)
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Text(
-                            _lastAnswer.isEmpty
-                                ? 'Vous n\'avez rien dit...'
-                                : _isCorrect!
-                                ? 'Parfait la réponse est bien : $_lastAnswer'
-                                : 'Non vous avez dit $_lastAnswer mais la réponse correcte est ${_currentNumber1 * _currentNumber2}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: _lastAnswer.isEmpty
-                                  ? Colors.orange
+                            Text(
+                              _lastAnswer.isEmpty
+                                  ? 'Vous n\'avez rien proposé...'
                                   : _isCorrect!
-                                  ? Colors.green
-                                  : Colors.red,
+                                      ? 'Parfait la réponse est bien : $_lastAnswer'
+                                      : 'Non vous avez proposé $_lastAnswer mais la réponse correcte est ${_currentNumber1 * _currentNumber2}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: _lastAnswer.isEmpty
+                                    ? Colors.orange
+                                    : _isCorrect!
+                                        ? Colors.green
+                                        : Colors.red,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       if (_streak > 0)
                         Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: const EdgeInsets.only(top: 16.0),
                           child: Text(
                             'Série: $_streak 🔥',
                             style: const TextStyle(
@@ -476,7 +432,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
 
-            // Bottom keyboard section
+// Keyboard section at the bottom
             if (_isKeyboardMode && _currentNumber1 != 0)
               NumberKeyboard(
                 currentInput: _currentInput,

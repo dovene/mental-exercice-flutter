@@ -18,7 +18,7 @@ class ScoreDisplay extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
-            'Score: $score',
+            '$score',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
