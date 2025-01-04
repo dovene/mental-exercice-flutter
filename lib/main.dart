@@ -42,13 +42,14 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-
   final AudioService _audioService = AudioService();
   Timer? _listenTimer;
   Timer? _countdownTimer;
   bool _isListening = false;
   int _selectedTable = 0;
   int _waitingTime = 5;
+  bool _isHardMode = false; // NEW: track Hard mode here
+
   String _lastAnswer = '';
   bool? _isCorrect;
   int _currentNumber1 = 0;
@@ -86,7 +87,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-
   @override
   void dispose() {
     _speechService.dispose();
@@ -95,12 +95,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _selectedTable = prefs.getInt('selectedTable') ?? 0;
       _waitingTime = prefs.getInt('waitingTime') ?? 5;
+      _isHardMode = prefs.getBool('isHardMode') ?? false; // load Hard mode
     });
   }
 
@@ -166,35 +166,40 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       _lastAnswer = '';
       _currentInput = '';
 
-      // We'll try picking a new question in a loop until it differs
-      // from the previous one.
       int newNumber1;
       int newNumber2;
 
       do {
         if (_selectedTable == 0) {
-          // If no specific table, pick random from 2..9 (skipping 1)
-          newNumber1 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
-          newNumber2 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+          // If no specific table is chosen
+          if (_isHardMode) {
+            // Hard mode => skip factors < 4 => pick from 4..9
+            newNumber1 = 4 + (DateTime.now().millisecondsSinceEpoch % 6); // 4..9
+            newNumber2 = 4 + (DateTime.now().millisecondsSinceEpoch % 6); // 4..9
+          } else {
+            // Normal mode => skip 1 => pick from 2..9
+            newNumber1 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+            newNumber2 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+          }
         } else {
-          // Use the selected table and pick random from 2..9 for the other factor
+          // A specific table is chosen
           newNumber1 = _selectedTable;
-          newNumber2 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+          if (_isHardMode) {
+            // Hard mode => pick from 4..9
+            newNumber2 = 4 + (DateTime.now().millisecondsSinceEpoch % 6); // 4..9
+          } else {
+            // Normal mode => pick from 2..9
+            newNumber2 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+          }
         }
-        // Keep looping while the new pair matches the previous pair
-        // so we do not repeat the same question consecutively.
       } while (newNumber1 == _previousNumber1 && newNumber2 == _previousNumber2);
 
-      // Now that we have a fresh question, update currentNumber1/2
       _currentNumber1 = newNumber1;
       _currentNumber2 = newNumber2;
 
-      // Remember this pair for next time
       _previousNumber1 = newNumber1;
       _previousNumber2 = newNumber2;
 
-      // If using keyboard mode, start the countdown timer
-      // If using voice mode, start listening
       if (_isKeyboardMode) {
         _startTimer();
       } else {
@@ -202,7 +207,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       }
     });
   }
-
 
   void triggerAnswerCheck() {
     _speechService.stopListening();
@@ -225,7 +229,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-// Also update _stopListening to reset the timer
   void _stopListening() {
     _cancelTimers();
     _speechService.stopListening();
@@ -295,16 +298,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => SettingsPage(
-                        initialTable: _selectedTable,
-                        initialTime: _waitingTime,
-                        onSettingsChanged: (table, time) {
-                          setState(() {
-                            _selectedTable = table;
-                            _waitingTime = time;
-                          });
-                        },
-                      )),
+                builder: (context) => SettingsPage(
+                  initialTable: _selectedTable,
+                  initialTime: _waitingTime,
+                  // We now expect (table, time, isHardMode)
+                  onSettingsChanged: (table, time, isHardMode) {
+                    setState(() {
+                      _selectedTable = table;
+                      _waitingTime = time;
+                      _isHardMode = isHardMode; // capture new Hard mode
+                    });
+                  },
+                ),
+              ),
             ),
           ),
         ],
@@ -312,10 +318,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           children: [
-// Top section with mode switch and timer
+            // Top section with mode switch and timer
             Padding(
               padding:
-                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+              const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -339,18 +345,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
 
-// Replace the existing timer display with this
             if (_remainingTime > 0)
               Padding(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: CountdownTimer(
                   totalSeconds: _waitingTime,
                   remainingSeconds: _remainingTime,
                 ),
               ),
 
-// Question and main button section - Always visible
+            // Question and main button section - Always visible
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
@@ -362,7 +367,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     )
                   else
                     Text(
-                      'Combien font $_currentNumber1 fois $_currentNumber2 ?',
+                      'Combien font $_currentNumber1 × $_currentNumber2 ?',
                       style: const TextStyle(fontSize: 24),
                     ),
                   const SizedBox(height: 20),
@@ -384,7 +389,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
 
-// Scrollable feedback section
+            // Scrollable feedback section
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -422,17 +427,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             const SizedBox(height: 20),
                             Text(
                               _lastAnswer.isEmpty
-                                  ? 'Vous n\'avez rien proposé, la réponse correcte est ${_currentNumber1 * _currentNumber2}'
+                                  ? 'Vous n\'avez rien proposé, la réponse correcte est '
+                                  '${_currentNumber1 * _currentNumber2}'
                                   : _isCorrect!
-                                      ? 'Parfait la réponse est bien : $_lastAnswer'
-                                      : 'Non vous avez proposé $_lastAnswer mais la réponse correcte est ${_currentNumber1 * _currentNumber2}',
+                                  ? 'Parfait, la réponse est bien : $_lastAnswer'
+                                  : 'Non, vous avez proposé $_lastAnswer '
+                                  'mais la bonne réponse est '
+                                  '${_currentNumber1 * _currentNumber2}',
                               style: TextStyle(
                                 fontSize: 18,
                                 color: _lastAnswer.isEmpty
                                     ? Colors.orange
                                     : _isCorrect!
-                                        ? Colors.green
-                                        : Colors.red,
+                                    ? Colors.green
+                                    : Colors.red,
                               ),
                             ),
                           ],
@@ -455,7 +463,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
 
-// Keyboard section at the bottom
+            // Keyboard section at the bottom
             if (_isKeyboardMode && _currentNumber1 != 0)
               NumberKeyboard(
                 currentInput: _currentInput,
