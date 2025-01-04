@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:learning/settings_page.dart';
+import 'package:flutter/services.dart';
+import 'package:learning/screens/history_page.dart';
+import 'package:learning/screens/settings_page.dart';
+import 'package:learning/widgets/number_keyboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'history_page.dart';
 import 'models/exercise_history.dart';
 import 'services/database_helper.dart';
 import 'services/audio_service.dart';
@@ -26,6 +28,7 @@ class MultiplicationApp extends StatelessWidget {
         primarySwatch: Colors.purple,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      debugShowCheckedModeBanner: false, // Add this line
       home: const HomePage(),
     );
   }
@@ -42,6 +45,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final SpeechToText _speechToText = SpeechToText();
   final AudioService _audioService = AudioService();
   Timer? _listenTimer;
+  Timer? _countdownTimer;
   bool _isListening = false;
   int _selectedTable = 0;
   int _waitingTime = 5;
@@ -49,6 +53,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool? _isCorrect;
   int _currentNumber1 = 0;
   int _currentNumber2 = 0;
+  bool _isKeyboardMode = true;
+  String _currentInput = '';
+  int _remainingTime = 0;
 
   late AnimationController _scoreController;
   late Animation<double> _scoreAnimation;
@@ -82,6 +89,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       debugLogging: true,
       onError: (error) {
         debugPrint("Speech recognition error: ${error.errorMsg}");
+        if (error.errorMsg == "error_no_match") {
+          setState(() {
+            _isListening = false;
+            _lastAnswer = ' - Texte non reconnu - ';
+            _checkAnswer();
+          });
+        }
       },
       onStatus: (status) {
         debugPrint("Speech recognition status: $status");
@@ -109,12 +123,62 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _listenTimer = null;
   }
 
+  void _handleKeyPress(String key) {
+    if (_currentInput.length < 4) {
+      setState(() {
+        _currentInput += key;
+      });
+    }
+  }
+
+  void _handleDelete() {
+    if (_currentInput.isNotEmpty) {
+      setState(() {
+        _currentInput = _currentInput.substring(0, _currentInput.length - 1);
+      });
+    }
+  }
+
+  void _checkKeyboardAnswer() {
+    setState(() {
+      _lastAnswer = _currentInput;
+    });
+    _checkAnswer();
+  }
+
+  void _startTimer() {
+    _cancelTimers();
+    _remainingTime = _waitingTime;
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_remainingTime > 0) {
+          _remainingTime--;
+        } else {
+          _cancelTimers();
+          if (_isKeyboardMode) {
+            _checkKeyboardAnswer();
+          } else {
+            _stopListening();
+            _checkAnswer();
+          }
+        }
+      });
+    });
+  }
+
+  void _cancelTimers() {
+    _countdownTimer?.cancel();
+    _listenTimer?.cancel();
+  }
+
+
   void _startExercise() async {
-    _cancelListenTimer();
+    _cancelTimers();
     await _audioService.playStart();
     setState(() {
       _isCorrect = null;
       _lastAnswer = '';
+      _currentInput = '';
       if (_selectedTable == 0) {
         _currentNumber1 = 2 + (DateTime.now().millisecondsSinceEpoch % 8);
         _currentNumber2 = 1 + (DateTime.now().millisecondsSinceEpoch % 9);
@@ -122,8 +186,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         _currentNumber1 = _selectedTable;
         _currentNumber2 = 1 + (DateTime.now().millisecondsSinceEpoch % 9);
       }
-      _startListening();
+
+      if (_isKeyboardMode) {
+        _startTimer();
+      } else {
+        _startListening();
+      }
     });
+  }
+
+  void triggerAnswerCheck() {
+    _cancelListenTimer();
+    _stopListening();
+    _checkAnswer();
   }
 
   void _startListening() async {
@@ -144,9 +219,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             });
 
             if (result.finalResult) {
-              _cancelListenTimer();
-              _stopListening();
-              _checkAnswer();
+              triggerAnswerCheck();
             }
           },
           listenFor: Duration(seconds: _waitingTime),
@@ -232,7 +305,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
-                  'Score: $_score',
+                  '$_score',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -263,94 +336,159 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (_currentNumber1 == 0)
-                  const Text(
-                    'Prêt à réviser les tables ?',
-                    style: TextStyle(fontSize: 24),
-                  )
-                else
-                  Column(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top section with mode switch and timer
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  // Mode switch
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        'Combien font $_currentNumber1 fois $_currentNumber2 ?',
-                        style: const TextStyle(fontSize: 24),
+                      Switch(
+                        value: !_isKeyboardMode,
+                        onChanged: (value) {
+                          setState(() {
+                            _isKeyboardMode = !value;
+                            _cancelTimers();
+                            _stopListening();
+                            _currentInput = '';
+                            _lastAnswer = '';
+                            _isCorrect = null;
+                          });
+                        },
                       ),
-                      const SizedBox(height: 20),
-                      if (_isListening)
+                      const Text('Mode voix'),
+                    ],
+                  ),
+                  // Timer display
+                  if (_remainingTime > 0)
+                    Text(
+                      'Temps restant: $_remainingTime s',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                ],
+              ),
+            ),
+
+            // Scrollable middle section
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_currentNumber1 == 0)
+                        const Text(
+                          'Prêt à réviser les tables ?',
+                          style: TextStyle(fontSize: 24),
+                        )
+                      else
                         Column(
                           children: [
-                            const CircularProgressIndicator(),
-                            const SizedBox(height: 10),
                             Text(
-                              'J\'écoute... ($_lastAnswer)',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontStyle: FontStyle.italic,
-                              ),
+                              'Combien font $_currentNumber1 fois $_currentNumber2 ?',
+                              style: const TextStyle(fontSize: 24),
                             ),
+                            const SizedBox(height: 20),
+                            if (!_isKeyboardMode && _isListening)
+                              Column(
+                                children: [
+                                  const CircularProgressIndicator(),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'J\'écoute... ($_lastAnswer)',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else if (_isCorrect != null)
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.elasticOut,
+                                transform: Matrix4.identity()
+                                  ..scale(_isCorrect! ? 1.2 : 1.0),
+                                child: Icon(
+                                  _isCorrect! ? Icons.check_circle : Icons.cancel,
+                                  color: _isCorrect! ? Colors.green : Colors.red,
+                                  size: 60,
+                                ),
+                              ),
                           ],
-                        )
-                      else if (_isCorrect != null)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.elasticOut,
-                          transform: Matrix4.identity()
-                            ..scale(_isCorrect! ? 1.2 : 1.0),
-                          child: Icon(
-                            _isCorrect! ? Icons.check_circle : Icons.cancel,
-                            color: _isCorrect! ? Colors.green : Colors.red,
-                            size: 60,
+                        ),
+                      const SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: _startExercise,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 20,
+                          ),
+                          backgroundColor: Colors.blueAccent,
+                        ),
+                        child: Text(
+                          _currentNumber1 == 0 ? 'Démarrer' : 'Nouvelle question',
+                          style: const TextStyle(fontSize: 20, color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      if (_isCorrect != null)
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            _lastAnswer.isEmpty
+                                ? 'Vous n\'avez rien dit...'
+                                : _isCorrect!
+                                ? 'Parfait la réponse est bien : $_lastAnswer'
+                                : 'Non vous avez dit $_lastAnswer mais la réponse correcte est ${_currentNumber1 * _currentNumber2}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: _lastAnswer.isEmpty
+                                  ? Colors.orange
+                                  : _isCorrect!
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ),
+                        ),
+                      if (_streak > 0)
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'Série: $_streak 🔥',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
                           ),
                         ),
                     ],
                   ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: _startExercise,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                    backgroundColor: Colors.blueAccent,
-                  ),
-                  child: Text(
-                    _currentNumber1 == 0 ? 'Démarrer' : 'Nouvelle question',
-                    style: const TextStyle(fontSize: 20, color: Colors.white),
-                  ),
                 ),
-                if (_isCorrect != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: Text(
-                      _isCorrect!
-                          ? 'Parfait la réponse est bien : $_lastAnswer'
-                          : 'Non vous avez dit $_lastAnswer mais la réponse correcte est ${_currentNumber1 * _currentNumber2}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: _isCorrect! ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  ),
-                if (_streak > 0)
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'Série: $_streak 🔥',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  ),
-              ],
+              ),
             ),
-          ),
-        ],
+
+            // Bottom keyboard section
+            if (_isKeyboardMode && _currentNumber1 != 0)
+              NumberKeyboard(
+                currentInput: _currentInput,
+                onKeyPressed: _handleKeyPress,
+                onDelete: _handleDelete,
+                onSubmit: () {
+                  _cancelTimers();
+                  _checkKeyboardAnswer();
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
