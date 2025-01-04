@@ -63,6 +63,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _streak = 0;
   late final SpeechService _speechService;
 
+  int? _previousNumber1;
+  int? _previousNumber2;
+
   @override
   void initState() {
     super.initState();
@@ -157,18 +160,41 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   void _startExercise() async {
     _cancelTimers();
     await _audioService.playStart();
+
     setState(() {
       _isCorrect = null;
       _lastAnswer = '';
       _currentInput = '';
-      if (_selectedTable == 0) {
-        _currentNumber1 = 2 + (DateTime.now().millisecondsSinceEpoch % 8);
-        _currentNumber2 = 1 + (DateTime.now().millisecondsSinceEpoch % 9);
-      } else {
-        _currentNumber1 = _selectedTable;
-        _currentNumber2 = 1 + (DateTime.now().millisecondsSinceEpoch % 9);
-      }
 
+      // We'll try picking a new question in a loop until it differs
+      // from the previous one.
+      int newNumber1;
+      int newNumber2;
+
+      do {
+        if (_selectedTable == 0) {
+          // If no specific table, pick random from 2..9 (skipping 1)
+          newNumber1 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+          newNumber2 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+        } else {
+          // Use the selected table and pick random from 2..9 for the other factor
+          newNumber1 = _selectedTable;
+          newNumber2 = 2 + (DateTime.now().millisecondsSinceEpoch % 8); // 2..9
+        }
+        // Keep looping while the new pair matches the previous pair
+        // so we do not repeat the same question consecutively.
+      } while (newNumber1 == _previousNumber1 && newNumber2 == _previousNumber2);
+
+      // Now that we have a fresh question, update currentNumber1/2
+      _currentNumber1 = newNumber1;
+      _currentNumber2 = newNumber2;
+
+      // Remember this pair for next time
+      _previousNumber1 = newNumber1;
+      _previousNumber2 = newNumber2;
+
+      // If using keyboard mode, start the countdown timer
+      // If using voice mode, start listening
       if (_isKeyboardMode) {
         _startTimer();
       } else {
@@ -176,6 +202,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       }
     });
   }
+
 
   void triggerAnswerCheck() {
     _speechService.stopListening();
