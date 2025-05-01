@@ -123,7 +123,7 @@ class HomeController with ChangeNotifier {
 
   Future<void> startExercise() async {
     _cancelTimers();
-    await _audioService.playStart();
+    _audioService.playStart();
 
     _isCorrect = null;
     _lastAnswer = '';
@@ -198,30 +198,27 @@ class HomeController with ChangeNotifier {
     notifyListeners();
   }
 
+// In HomeController
   void _checkKeyboardAnswer() {
-    // Only proceed if there's actual input
-    if (_currentInput.isEmpty) {
+    // Immediately capture the input and clear it
+    final answer = _currentInput;
+    _currentInput = '';
+
+    if (answer.isEmpty) {
       _lastAnswer = '';
       _isCorrect = false;
       notifyListeners();
       return;
     }
 
-    _lastAnswer = _currentInput;
+    _lastAnswer = answer;
+    // Call _checkAnswer without awaiting to start the process immediately
     _checkAnswer();
+    // Notify listeners right away for the UI update
+    notifyListeners();
   }
 
   Future<void> _checkAnswer() async {
-    // Prevent double-checking
-    if (_isCorrect != null) return;
-
-    // If we get here with an empty answer, it means voice input failed
-    if (_lastAnswer.isEmpty) {
-      _isCorrect = false;
-      notifyListeners();
-      return;
-    }
-
     final correctAnswer = _currentNumber1 * _currentNumber2;
     final givenAnswer = int.tryParse(_lastAnswer) ?? -1;
     final isCorrect = givenAnswer == correctAnswer;
@@ -231,14 +228,17 @@ class HomeController with ChangeNotifier {
     if (isCorrect) {
       _score += 10 + (_streak * 2);
       _streak++;
-      await _audioService.playCorrect();
+      // Don't await these operations
+      _audioService.playCorrect();
     } else {
       _streak = 0;
       _score = 0;
-      await _audioService.playIncorrect();
+      _audioService.playIncorrect();
     }
+    notifyListeners();
 
-    await DatabaseHelper.instance.insertExercise(
+    // Don't await the database operation
+    DatabaseHelper.instance.insertExercise(
       ExerciseHistory(
         id: DateTime.now().millisecondsSinceEpoch,
         number1: _currentNumber1,
@@ -249,8 +249,9 @@ class HomeController with ChangeNotifier {
       ),
     );
 
-    notifyListeners();
+
   }
+
 
   @override
   void dispose() {
