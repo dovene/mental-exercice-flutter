@@ -7,7 +7,7 @@ import '../services/audio_service.dart';
 import '../services/database_helper.dart';
 import '../services/speech_service.dart';
 
-class HomeController with ChangeNotifier {
+/*class HomeController with ChangeNotifier {
   final AudioService _audioService = AudioService();
   final SpeechService _speechService;
   Timer? _listenTimer;
@@ -258,4 +258,4 @@ class HomeController with ChangeNotifier {
     _cancelTimers();
     super.dispose();
   }
-}
+}*/

@@ -1,28 +1,33 @@
+// lib/screens/exercise_page.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../models/subject.dart';
 import '../widgets/countdown_timer.dart';
 import '../widgets/number_keyboard.dart';
 import '../widgets/score_display.dart';
+import 'controllers/exercise_controller.dart';
 import 'history_page.dart';
-import 'home_page_controller.dart';
 import 'settings_page.dart';
-/*
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+
+class ExercisePage extends StatefulWidget {
+  final Subject subject;
+
+  const ExercisePage({Key? key, required this.subject}) : super(key: key);
 
   @override
-  _HomePageState createState() => _HomePageState();
+  _ExercisePageState createState() => _ExercisePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  late HomeController _controller;
+class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMixin {
+  late ExerciseController _controller;
   late AnimationController _scoreController;
   late Animation<double> _scoreAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller = HomeController();
+    _controller = ExerciseController(widget.subject.type);
     _initializeScoreController();
   }
 
@@ -59,9 +64,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: const Text('Mes tables'),
+      title: Text(widget.subject.name),
+      backgroundColor: widget.subject.color,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.pop(context),
+      ),
       actions: [
-        Consumer<HomeController>(
+        Consumer<ExerciseController>(
           builder: (context, controller, child) =>
               ScoreDisplay(
                 score: controller.score,
@@ -73,7 +83,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           onPressed: () =>
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const HistoryPage()),
+                MaterialPageRoute(builder: (context) => HistoryPage(subjectType: widget.subject.type)),
               ),
         ),
         IconButton(
@@ -89,10 +99,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       context,
       MaterialPageRoute(
         builder: (context) => SettingsPage(
-          initialTable: _controller.selectedTable,
-          initialTime: _controller.waitingTime,
-          onSettingsChanged: (table, time, isHardMode) {
-            _controller.updateSettings(table, time, isHardMode);
+          subject: widget.subject,
+          initialSettings: _controller.settings,
+          onSettingsChanged: (settings) {
+            _controller.updateSettings(settings);
           },
         ),
       ),
@@ -100,7 +110,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildModeSwitch() {
-    return Consumer<HomeController>(
+    return Consumer<ExerciseController>(
       builder: (context, controller, child) =>
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -111,6 +121,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Switch(
                   value: !controller.isKeyboardMode,
                   onChanged: (value) => controller.toggleInputMode(value),
+                  activeColor: widget.subject.color,
                 ),
                 const Text('Mode voix'),
               ],
@@ -120,15 +131,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildTimer() {
-    return Consumer<HomeController>(
+    return Consumer<ExerciseController>(
       builder: (context, controller, child) {
         if (controller.remainingTime > 0) {
           return Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: 16.0, vertical: 8.0),
             child: CountdownTimer(
-              totalSeconds: controller.waitingTime,
+              totalSeconds: controller.settings.waitingTime,
               remainingSeconds: controller.remainingTime,
+             // color: widget.subject.color,
             ),
           );
         }
@@ -138,22 +150,23 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildQuestionSection() {
-    return Consumer<HomeController>(
+    return Consumer<ExerciseController>(
       builder: (context, controller, child) =>
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
               children: [
                 if (controller.currentNumber1 == 0)
-                  const Text(
-                    'Prêt à réviser les tables ?',
-                    style: TextStyle(fontSize: 24),
+                  Text(
+                    'Prêt à t\'exercer sur ${widget.subject.name} ?',
+                    style: const TextStyle(fontSize: 24),
+                    textAlign: TextAlign.center,
                   )
                 else
                   Text(
-                    'Combien font ${controller.currentNumber1} × ${controller
-                        .currentNumber2} ?',
+                    _getQuestionText(controller),
                     style: const TextStyle(fontSize: 24),
+                    textAlign: TextAlign.center,
                   ),
                 const SizedBox(height: 20),
                 ElevatedButton(
@@ -163,7 +176,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       horizontal: 40,
                       vertical: 10,
                     ),
-                    backgroundColor: Colors.blueAccent,
+                    backgroundColor: widget.subject.color,
                   ),
                   child: Text(
                     controller.currentNumber1 == 0
@@ -178,8 +191,30 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  String _getQuestionText(ExerciseController controller) {
+    String operationSymbol;
+    
+    switch (widget.subject.type) {
+      case SubjectType.tables:
+      case SubjectType.multiplication:
+        operationSymbol = "×";
+        break;
+      case SubjectType.addition:
+        operationSymbol = "+";
+        break;
+      case SubjectType.soustraction:
+        operationSymbol = "-";
+        break;
+      case SubjectType.division:
+        operationSymbol = "÷";
+        break;
+    }
+    
+    return 'Combien font ${controller.currentNumber1} $operationSymbol ${controller.currentNumber2} ?';
+  }
+
   Widget _buildFeedbackSection() {
-    return Consumer<HomeController>(
+    return Consumer<ExerciseController>(
       builder: (context, controller, child) =>
           Expanded(
             child: SingleChildScrollView(
@@ -202,10 +237,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildListeningIndicator(HomeController controller) {
+  Widget _buildListeningIndicator(ExerciseController controller) {
     return Column(
       children: [
-        const CircularProgressIndicator(),
+        CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(widget.subject.color),
+        ),
         const SizedBox(height: 10),
         Text(
           'J\'écoute... (${controller.lastAnswer})',
@@ -218,7 +255,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAnswerFeedback(HomeController controller) {
+  Widget _buildAnswerFeedback(ExerciseController controller) {
     return Column(
       children: [
         AnimatedContainer(
@@ -248,19 +285,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  String _getFeedbackText(HomeController controller) {
+  String _getFeedbackText(ExerciseController controller) {
+    final correctAnswer = controller.getCorrectAnswer();
+    
     if (controller.lastAnswer.isEmpty) {
-      return 'Vous n\'avez rien proposé, la réponse correcte est '
-          '${controller.currentNumber1 * controller.currentNumber2}';
+      return 'Vous n\'avez rien proposé, la réponse correcte est $correctAnswer';
     }
+    
     return controller.isCorrect!
         ? 'Parfait, la réponse est bien : ${controller.lastAnswer}'
         : 'Non, vous avez proposé ${controller.lastAnswer} '
-        'mais la bonne réponse est '
-        '${controller.currentNumber1 * controller.currentNumber2}';
+          'mais la bonne réponse est $correctAnswer';
   }
 
-  Widget _buildStreakDisplay(HomeController controller) {
+  Widget _buildStreakDisplay(ExerciseController controller) {
     return Padding(
       padding: const EdgeInsets.only(top: 16.0),
       child: Text(
@@ -275,7 +313,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildKeyboard() {
-    return Consumer<HomeController>(
+    return Consumer<ExerciseController>(
       builder: (context, controller, child) {
         if (controller.isKeyboardMode && controller.currentNumber1 != 0) {
           return NumberKeyboard(
@@ -285,6 +323,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             onSubmit: () {
               controller.triggerAnswerCheck();
             },
+           // color: widget.subject.color,
           );
         }
         return const SizedBox.shrink();
@@ -298,5 +337,4 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _scoreController.dispose();
     super.dispose();
   }
-
-}*/
+}

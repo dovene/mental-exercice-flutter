@@ -1,3 +1,5 @@
+import 'subject.dart';
+
 class ExerciseHistory {
   final int id;
   final int number1;
@@ -5,6 +7,7 @@ class ExerciseHistory {
   final bool isCorrect;
   final String givenAnswer;
   final DateTime date;
+  final SubjectType subjectType; // Nouveau champ
 
   ExerciseHistory({
     required this.id,
@@ -13,6 +16,7 @@ class ExerciseHistory {
     required this.isCorrect,
     required this.givenAnswer,
     required this.date,
+    required this.subjectType, // Nouveau paramètre
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +27,7 @@ class ExerciseHistory {
       'isCorrect': isCorrect ? 1 : 0,
       'givenAnswer': givenAnswer,
       'date': date.toIso8601String(),
+      'subjectType': subjectType.index, // Sauvegarder l'index de l'enum
     };
   }
 
@@ -34,6 +39,41 @@ class ExerciseHistory {
       isCorrect: map['isCorrect'] == 1,
       givenAnswer: map['givenAnswer'],
       date: DateTime.parse(map['date']),
+      subjectType: map['subjectType'] != null
+          ? SubjectType.values[map['subjectType']]
+          : SubjectType.tables, // Valeur par défaut pour la rétrocompatibilité
     );
   }
+
+  // Helper pour afficher l'opération
+  String getOperationText() {
+    switch (subjectType) {
+      case SubjectType.tables:
+      case SubjectType.multiplication:
+        return '$number1 × $number2';
+      case SubjectType.addition:
+        return '$number1 + $number2';
+      case SubjectType.soustraction:
+        return '$number1 - $number2';
+      case SubjectType.division:
+        return '$number1 ÷ $number2';
+    }
+  }
+
+  // Helper pour calculer la réponse correcte
+  int getCorrectAnswer() {
+    switch (subjectType) {
+      case SubjectType.tables:
+      case SubjectType.multiplication:
+        return number1 * number2;
+      case SubjectType.addition:
+        return number1 + number2;
+      case SubjectType.soustraction:
+        return number1 - number2;
+      case SubjectType.division:
+        return number1 ~/ number2; // Division entière
+    }
+  }
 }
+
+// lib/models/operation_settings.dart
