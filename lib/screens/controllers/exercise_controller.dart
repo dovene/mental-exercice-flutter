@@ -16,7 +16,7 @@ class ExerciseController with ChangeNotifier {
   final SubjectType subjectType;
 
   Timer? _listenTimer;
-  Timer? _countdownTimer;
+  Timer? _exerciseTimer; // Timer for exercise time limit
 
   bool _isListening = false;
   OperationSettings _settings = OperationSettings();
@@ -27,7 +27,10 @@ class ExerciseController with ChangeNotifier {
   int _currentNumber2 = 0;
   bool _isKeyboardMode = true;
   String _currentInput = '';
-  int _remainingTime = 0;
+
+  int _exerciseRemainingTime = 0; // Timer countdown for exercise
+  bool _isTimerEnabled = true; // Flag for timer enable/disable
+  bool _isExerciseActive = false; // Flag to track if exercise has started
 
   int _score = 0;
   int _streak = 0;
@@ -35,6 +38,9 @@ class ExerciseController with ChangeNotifier {
   int? _previousNumber1;
   int? _previousNumber2;
   Random _random = Random();
+
+  // Animation control
+  bool _showAnswerAnimation = false;
 
   // Getters
   bool get isListening => _isListening;
@@ -44,14 +50,18 @@ class ExerciseController with ChangeNotifier {
   int get currentNumber2 => _currentNumber2;
   bool get isKeyboardMode => _isKeyboardMode;
   String get currentInput => _currentInput;
-  int get remainingTime => _remainingTime;
+
+  int get exerciseRemainingTime => _exerciseRemainingTime;
+  bool get isTimerEnabled => _isTimerEnabled;
   int get score => _score;
   int get streak => _streak;
   OperationSettings get settings => _settings;
+  bool get showAnswerAnimation => _showAnswerAnimation;
 
   ExerciseController(this.subjectType) {
     _loadSettings();
     _loadScore();
+    _loadTimerPreference();
     _speechService.initialize();
   }
 
@@ -82,6 +92,38 @@ class ExerciseController with ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  // Load timer preference
+  Future<void> _loadTimerPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isTimerEnabled =
+        prefs.getBool('timer_enabled_${subjectType.toString()}') ?? true;
+
+    notifyListeners();
+  }
+
+  // Save timer preference
+  Future<void> _saveTimerPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('timer_enabled_${subjectType.toString()}', _isTimerEnabled);
+  }
+
+  // Toggle timer enabled/disabled
+  void toggleTimer(bool enabled) {
+    _isTimerEnabled = enabled;
+    _saveTimerPreference();
+
+    // If disabling while exercise is in progress, cancel the timer
+    if (!enabled && _exerciseTimer != null) {
+      _exerciseTimer?.cancel();
+      _exerciseRemainingTime = 0;
+    } else if (enabled && _isExerciseActive) {
+      // Restart exercise timer if enabling during active exercise
+      _startExerciseTimer();
+    }
+
+    notifyListeners();
   }
 
   Future<void> _saveSettings() async {
@@ -123,8 +165,17 @@ class ExerciseController with ChangeNotifier {
   }
 
   void startExercise() {
+    // Cancel any existing timers first
+    _exerciseTimer?.cancel();
+
+    // Set active flag to true
+    _isExerciseActive = true;
+
+    // Generate new question and start countdown
     _generateNewQuestion();
-    _startCountdown();
+    _startExerciseTimer();
+
+    // Exercise timer will be started after countdown completes
     notifyListeners();
   }
 
@@ -145,6 +196,7 @@ class ExerciseController with ChangeNotifier {
     _currentInput = '';
     _isCorrect = null;
     _lastAnswer = '';
+    _showAnswerAnimation = false;
 
     notifyListeners();
   }
@@ -163,12 +215,12 @@ class ExerciseController with ChangeNotifier {
     if (_settings.multiDigitMode) {
       if (subjectType == SubjectType.addition ||
           subjectType == SubjectType.soustraction) {
-        maxNum = 99999; // Additions/soustractions à plusieurs chiffres
+        maxNum = 9999; // Additions/soustractions à plusieurs chiffres
       } else {
-        maxNum = 99; // Multiplications/divisions à plusieurs chiffres
+        maxNum = 9999; // Multiplications/divisions à plusieurs chiffres
       }
     } else if (_settings.isHardMode) {
-      maxNum = 20; // Mode difficile avec des nombres plus grands
+      maxNum = 9999; // Mode difficile avec des nombres plus grands
     }
 
     return _random.nextInt(maxNum) + 1; // Entre 1 et maxNum
@@ -182,14 +234,14 @@ class ExerciseController with ChangeNotifier {
     if (_settings.multiDigitMode) {
       if (subjectType == SubjectType.addition ||
           subjectType == SubjectType.soustraction) {
-        maxNum = 99999; // Additions/soustractions à plusieurs chiffres
+        maxNum = 9999; // Additions/soustractions à plusieurs chiffres
       } else if (subjectType == SubjectType.multiplication) {
-        maxNum = 99999; // Multiplications à plusieurs chiffres
+        maxNum = 9999; // Multiplications à plusieurs chiffres
       } else if (subjectType == SubjectType.division) {
-        maxNum = 12; // Divisions limitées pour obtenir des résultats entiers
+        maxNum = 48; // Divisions limitées pour obtenir des résultats entiers
       }
     } else if (_settings.isHardMode) {
-      maxNum = 20; // Mode difficile
+      maxNum = 9999; // Mode difficile
     }
 
     // Pour les soustractions et divisions, s'assurer que le résultat est positif et entier
@@ -216,15 +268,20 @@ class ExerciseController with ChangeNotifier {
     }
   }
 
-  void _startCountdown() {
-    _remainingTime = _settings.waitingTime;
+  /*void _startCountdown() {
+    _exerciseRemainingTime = _settings.waitingTime;
 
-    _countdownTimer?.cancel();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _remainingTime--;
+    _exerciseTimer?.cancel();
+    _exerciseTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _exerciseRemainingTime--;
 
-      if (_remainingTime <= 0) {
+      if (_exerciseRemainingTime <= 0) {
         timer.cancel();
+
+        // When countdown completes, start the exercise timer
+        if (_isTimerEnabled) {
+          _startExerciseTimer();
+        }
 
         if (!_isKeyboardMode) {
           // Lancer la reconnaissance vocale en mode voix
@@ -234,6 +291,35 @@ class ExerciseController with ChangeNotifier {
 
       notifyListeners();
     });
+  }*/
+
+  // Start the exercise timer
+  void _startExerciseTimer() {
+    // Cancel any existing timer
+    _exerciseTimer?.cancel();
+
+    // Set the initial time (30 seconds for the exercise)
+    _exerciseRemainingTime = _settings.waitingTime;
+
+    // Only start the timer if it's enabled
+    if (_isTimerEnabled) {
+      _exerciseTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_exerciseRemainingTime <= 0) {
+          timer.cancel();
+          // Time's up - record "Pas de réponse" if no answer given
+          if (_isCorrect == null) {
+            _lastAnswer = "Pas de réponse";
+            _isCorrect = false;
+            _saveExerciseHistory();
+            _showAnswerAnimation = true;
+            notifyListeners();
+          }
+        } else {
+          _exerciseRemainingTime--;
+          notifyListeners();
+        }
+      });
+    }
   }
 
   void _startListening() {
@@ -314,6 +400,12 @@ class ExerciseController with ChangeNotifier {
       }
     }
 
+    // Cancel exercise timer when answer is submitted
+    _exerciseTimer?.cancel();
+
+    // Trigger animation
+    _showAnswerAnimation = true;
+
     // Sauvegarder l'historique
     _saveExerciseHistory();
 
@@ -339,7 +431,7 @@ class ExerciseController with ChangeNotifier {
 
     try {
       final history = ExerciseHistory(
-        id: 0, // SQLite attribuera un ID auto-incrémenté
+        id: DateTime.now().millisecondsSinceEpoch,
         number1: _currentNumber1,
         number2: _currentNumber2,
         isCorrect: _isCorrect ?? false,
@@ -355,10 +447,16 @@ class ExerciseController with ChangeNotifier {
     }
   }
 
+  // Method to reset the animation state and prepare for next question
+  void resetAnimation() {
+    _showAnswerAnimation = false;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
-    _countdownTimer?.cancel();
     _listenTimer?.cancel();
+    _exerciseTimer?.cancel();
     _speechService.dispose();
     super.dispose();
   }

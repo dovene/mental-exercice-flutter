@@ -75,5 +75,3 @@ class ExerciseHistory {
     }
   }
 }
-
-// lib/models/operation_settings.dart

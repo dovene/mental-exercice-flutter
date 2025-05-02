@@ -36,9 +36,11 @@ class _HistoryPageState extends State<HistoryPage> {
     });
 
     try {
-      final history = await DatabaseHelper.instance.getHistory(subjectType: widget.subjectType);
-      final stats = await DatabaseHelper.instance.getStats(subjectType: widget.subjectType);
-      
+      final history = await DatabaseHelper.instance
+          .getHistory(subjectType: widget.subjectType);
+      final stats = await DatabaseHelper.instance
+          .getStats(subjectType: widget.subjectType);
+
       setState(() {
         _history = history;
         _stats = stats;
@@ -57,7 +59,8 @@ class _HistoryPageState extends State<HistoryPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Effacer l\'historique'),
-        content: Text('Êtes-vous sûr de vouloir effacer tout l\'historique pour ${Subject.getSubjectByType(widget.subjectType).name} ?'),
+        content: Text(
+            'Êtes-vous sûr de vouloir effacer tout l\'historique pour ${Subject.getSubjectByType(widget.subjectType).name} ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -66,7 +69,8 @@ class _HistoryPageState extends State<HistoryPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await DatabaseHelper.instance.clearHistory(subjectType: widget.subjectType);
+              await DatabaseHelper.instance
+                  .clearHistory(subjectType: widget.subjectType);
               _loadHistory();
             },
             child: const Text('Effacer'),
@@ -79,7 +83,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     final subject = Subject.getSubjectByType(widget.subjectType);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Historique - ${subject.name}'),
@@ -92,18 +96,19 @@ class _HistoryPageState extends State<HistoryPage> {
           ),
         ],
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-            children: [
-              _buildStatsCard(),
-              Expanded(
-                child: _history.isEmpty
-                  ? const Center(child: Text('Aucun exercice dans l\'historique'))
-                  : _buildHistoryList(),
-              ),
-            ],
-          ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                _buildStatsCard(),
+                Expanded(
+                  child: _history.isEmpty
+                      ? const Center(
+                          child: Text('Aucun exercice dans l\'historique'))
+                      : _buildHistoryList(),
+                ),
+              ],
+            ),
     );
   }
 
@@ -112,7 +117,7 @@ class _HistoryPageState extends State<HistoryPage> {
     final totalCount = _stats['total'] as int;
     final percentage = _stats['percentage'] as int;
     final subject = Subject.getSubjectByType(widget.subjectType);
-    
+
     return Card(
       margin: const EdgeInsets.all(16.0),
       elevation: 4.0,
@@ -135,7 +140,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 _buildStatItem('Total', totalCount.toString()),
                 _buildStatItem('Corrects', correctCount.toString()),
                 _buildStatItem(
-                  'Taux de réussite', 
+                  'Taux de réussite',
                   '$percentage%',
                   TextStyle(
                     fontSize: 16,
@@ -164,10 +169,11 @@ class _HistoryPageState extends State<HistoryPage> {
         const SizedBox(height: 4),
         Text(
           value,
-          style: valueStyle ?? const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
+          style: valueStyle ??
+              const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
         ),
       ],
     );
@@ -191,9 +197,9 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildHistoryItem(ExerciseHistory item) {
-   // final dateFormat = DateFormat('dd/MM HH:mm');
+    // final dateFormat = DateFormat('dd/MM HH:mm');
     final subject = Subject.getSubjectByType(widget.subjectType);
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
@@ -209,8 +215,7 @@ class _HistoryPageState extends State<HistoryPage> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          'Réponse: ${item.givenAnswer} (${item.isCorrect ? 'Correct' : 'Incorrect: ${item.getCorrectAnswer()}'})'
-        ),
+            'Réponse: ${item.givenAnswer} (${item.isCorrect ? 'Correct' : 'Incorrect: ${item.getCorrectAnswer()}'})'),
         trailing: Container(
           width: 40,
           height: 40,
@@ -224,107 +229,3 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 }
-
-/*
-class HistoryPage extends StatefulWidget {
-  const HistoryPage({super.key});
-
-  @override
-  State<HistoryPage> createState() => _HistoryPageState();
-}
-
-class _HistoryPageState extends State<HistoryPage> {
-  Future<List<ExerciseHistory>>? _historyFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshHistory();
-  }
-
-  void _refreshHistory() {
-    setState(() {
-      _historyFuture = DatabaseHelper.instance.getHistory();
-    });
-  }
-
-  Future<void> _clearHistory() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Effacer l\'historique'),
-        content: const Text('Voulez-vous vraiment effacer tout l\'historique ?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Effacer'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await DatabaseHelper.instance.clearHistory();
-      _refreshHistory();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Historique'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: _clearHistory,
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<ExerciseHistory>>(
-        future: _historyFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Pas encore d\'historique'));
-          }
-
-          return ListView.builder(
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              final exercise = snapshot.data![index];
-              return ListTile(
-                leading: Icon(
-                  exercise.isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: exercise.isCorrect ? Colors.green : Colors.red,
-                ),
-                title: Text(
-                  '${exercise.number1} × ${exercise.number2} = ${exercise.givenAnswer}',
-                  style: const TextStyle(fontSize: 18),
-                ),
-                subtitle: Text(
-                  'Le ${exercise.date.day}/${exercise.date.month}/${exercise.date.year}',
-                ),
-                trailing: Text(
-                  exercise.isCorrect ? '+10 points' : '0 point',
-                  style: TextStyle(
-                    color: exercise.isCorrect ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-*/

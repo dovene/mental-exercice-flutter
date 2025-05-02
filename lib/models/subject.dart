@@ -1,21 +1,14 @@
-
 // lib/models/subject.dart
 import 'package:flutter/material.dart';
 
-enum SubjectType {
-  tables,
-  addition,
-  soustraction,
-  multiplication,
-  division
-}
+enum SubjectType { tables, addition, soustraction, multiplication, division }
 
 class Subject {
   final String name;
   final String description;
   final SubjectType type;
   final IconData icon;
-  final String classLevel;
+  final List<String> classLevels;
   final Color color;
 
   Subject({
@@ -23,7 +16,7 @@ class Subject {
     required this.description,
     required this.type,
     required this.icon,
-    required this.classLevel,
+    required this.classLevels,
     required this.color,
   });
 
@@ -34,7 +27,7 @@ class Subject {
         description: "Apprendre les tables de multiplication",
         type: SubjectType.tables,
         icon: Icons.grid_on,
-        classLevel: "CE2",
+        classLevels: ["CE2", "CM1", "CM2"],
         color: Colors.purple,
       ),
       Subject(
@@ -42,7 +35,7 @@ class Subject {
         description: "Apprendre à additionner",
         type: SubjectType.addition,
         icon: Icons.add,
-        classLevel: "CP",
+        classLevels: ["CP", "CE1", "CE2", "CM1", "CM2"],
         color: Colors.blue,
       ),
       Subject(
@@ -50,7 +43,7 @@ class Subject {
         description: "Apprendre à soustraire",
         type: SubjectType.soustraction,
         icon: Icons.remove,
-        classLevel: "CP",
+        classLevels: ["CP", "CE1", "CE2", "CM1", "CM2"],
         color: Colors.red,
       ),
       Subject(
@@ -58,7 +51,7 @@ class Subject {
         description: "Apprendre à multiplier",
         type: SubjectType.multiplication,
         icon: Icons.close,
-        classLevel: "CE1",
+        classLevels: ["CE2", "CM1", "CM2"],
         color: Colors.green,
       ),
       Subject(
@@ -66,7 +59,7 @@ class Subject {
         description: "Apprendre à diviser",
         type: SubjectType.division,
         icon: Icons.border_vertical,
-        classLevel: "CM1",
+        classLevels: ["CE2", "CM1", "CM2"],
         color: Colors.orange,
       ),
     ];

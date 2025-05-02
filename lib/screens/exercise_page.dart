@@ -1,11 +1,13 @@
 // lib/screens/exercise_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/subject.dart';
+import '../widgets/answer_animation.dart';
 import '../widgets/countdown_timer.dart';
 import '../widgets/number_keyboard.dart';
-import '../widgets/score_display.dart';
+import '../widgets/star_rating.dart';
 import 'controllers/exercise_controller.dart';
 import 'history_page.dart';
 import 'settings_page.dart';
@@ -19,7 +21,8 @@ class ExercisePage extends StatefulWidget {
   _ExercisePageState createState() => _ExercisePageState();
 }
 
-class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMixin {
+class _ExercisePageState extends State<ExercisePage>
+    with TickerProviderStateMixin {
   late ExerciseController _controller;
   late AnimationController _scoreController;
   late Animation<double> _scoreAnimation;
@@ -45,19 +48,48 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _controller,
-      child: Scaffold(
-        appBar: _buildAppBar(),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildModeSwitch(),
-              _buildTimer(),
-              _buildQuestionSection(),
-              _buildFeedbackSection(),
-              _buildKeyboard(),
-            ],
-          ),
-        ),
+      child: Consumer<ExerciseController>(
+        builder: (context, controller, child) {
+          // Base content scaffold
+          final Widget content = Scaffold(
+            appBar: _buildAppBar(),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  _buildModeAndTimerSection(),
+                  // show timer onnly if the timer is enabled
+                  if (controller.isTimerEnabled) _buildTimer(),
+                  _buildQuestionSection(),
+                  _buildFeedbackSection(),
+                  _buildKeyboard(),
+                ],
+              ),
+            ),
+          );
+
+          // Apply the appropriate animation based on answer status
+          if (controller.showAnswerAnimation) {
+            if (controller.isCorrect != null) {
+              // Use correct answer animation when answer is correct
+              if (controller.isCorrect!) {
+                return CorrectAnswerAnimation(child: content);
+              }
+              // Use incorrect answer animation when answer is wrong
+              else {
+                return IncorrectAnswerAnimation(child: content);
+              }
+            }
+
+            // Reset animation after a delay
+            Future.delayed(const Duration(milliseconds: 2000), () {
+              if (mounted) {
+                controller.resetAnimation();
+              }
+            });
+          }
+
+          return content;
+        },
       ),
     );
   }
@@ -72,19 +104,27 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
       ),
       actions: [
         Consumer<ExerciseController>(
-          builder: (context, controller, child) =>
-              ScoreDisplay(
-                score: controller.score,
-                animation: _scoreAnimation,
-              ),
+          builder: (context, controller, child) {
+            return Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Center(
+                  /*child: StarRating(
+                  score: controller.score,
+                  activeColor: widget.subject.color,
+                  size: 20,
+                ),*/
+                  ),
+            );
+          },
         ),
         IconButton(
           icon: const Icon(Icons.history),
-          onPressed: () =>
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => HistoryPage(subjectType: widget.subject.type)),
-              ),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) =>
+                    HistoryPage(subjectType: widget.subject.type)),
+          ),
         ),
         IconButton(
           icon: const Icon(Icons.settings),
@@ -109,14 +149,15 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
     );
   }
 
-  Widget _buildModeSwitch() {
+  Widget _buildModeAndTimerSection() {
     return Consumer<ExerciseController>(
-      builder: (context, controller, child) =>
-          Padding(
-            padding: const EdgeInsets.symmetric(
-                vertical: 8.0, horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      builder: (context, controller, child) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Voice mode toggle
+            Row(
               children: [
                 Switch(
                   value: !controller.isKeyboardMode,
@@ -126,74 +167,120 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
                 const Text('Mode voix'),
               ],
             ),
-          ),
+            // Timer enable/disable
+            Row(
+              children: [
+                Switch(
+                  value: controller.isTimerEnabled,
+                  onChanged: (value) => controller.toggleTimer(value),
+                  activeColor: widget.subject.color,
+                ),
+                const Text('Timer'),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildTimer() {
     return Consumer<ExerciseController>(
       builder: (context, controller, child) {
-        if (controller.remainingTime > 0) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16.0, vertical: 8.0),
+        Widget timerWidget = const SizedBox.shrink();
+
+        // Show initial countdown
+        if (controller.exerciseRemainingTime > 0) {
+          timerWidget = Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: CountdownTimer(
               totalSeconds: controller.settings.waitingTime,
-              remainingSeconds: controller.remainingTime,
-             // color: widget.subject.color,
+              remainingSeconds: controller.exerciseRemainingTime,
             ),
           );
         }
-        return const SizedBox.shrink();
+        // Show exercise timer if enabled
+        else if (controller.isTimerEnabled &&
+            controller.exerciseRemainingTime > 0) {
+          timerWidget = Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              children: [
+                Text(
+                  'Temps restant: ${controller.exerciseRemainingTime}s',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: controller.exerciseRemainingTime < 10
+                        ? Colors.red
+                        : Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                LinearProgressIndicator(
+                  value: controller.exerciseRemainingTime / 30,
+                  backgroundColor: Colors.grey.shade300,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    controller.exerciseRemainingTime < 10
+                        ? Colors.red
+                        : widget.subject.color,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return timerWidget;
       },
     );
   }
 
   Widget _buildQuestionSection() {
     return Consumer<ExerciseController>(
-      builder: (context, controller, child) =>
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Column(
-              children: [
-                if (controller.currentNumber1 == 0)
-                  Text(
-                    'Prêt à t\'exercer sur ${widget.subject.name} ?',
-                    style: const TextStyle(fontSize: 24),
-                    textAlign: TextAlign.center,
-                  )
-                else
-                  Text(
-                    _getQuestionText(controller),
-                    style: const TextStyle(fontSize: 24),
-                    textAlign: TextAlign.center,
-                  ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: controller.startExercise,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 10,
-                    ),
-                    backgroundColor: widget.subject.color,
-                  ),
-                  child: Text(
-                    controller.currentNumber1 == 0
-                        ? 'Démarrer'
-                        : 'Nouvelle question',
-                    style: const TextStyle(fontSize: 20, color: Colors.white),
-                  ),
+      builder: (context, controller, child) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          children: [
+            if (controller.currentNumber1 == 0)
+              Text(
+                'Prêt à t\'exercer sur ${widget.subject.name} ?',
+                style: const TextStyle(fontSize: 24),
+                textAlign: TextAlign.center,
+              )
+            else
+              Text(
+                _getQuestionText(controller),
+                style: const TextStyle(fontSize: 24),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: controller.startExercise,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 10,
                 ),
-              ],
+                backgroundColor: widget.subject.color,
+              ),
+              child: Text(
+                controller.currentNumber1 == 0
+                    ? 'Démarrer'
+                    : 'Nouvelle question',
+                style: const TextStyle(fontSize: 20, color: Colors.white),
+              ),
             ),
-          ),
+          ],
+        ),
+      ),
     );
   }
 
   String _getQuestionText(ExerciseController controller) {
     String operationSymbol;
-    
+
     switch (widget.subject.type) {
       case SubjectType.tables:
       case SubjectType.multiplication:
@@ -209,31 +296,28 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
         operationSymbol = "÷";
         break;
     }
-    
+
     return 'Combien font ${controller.currentNumber1} $operationSymbol ${controller.currentNumber2} ?';
   }
 
   Widget _buildFeedbackSection() {
     return Consumer<ExerciseController>(
-      builder: (context, controller, child) =>
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    if (!controller.isKeyboardMode && controller.isListening)
-                      _buildListeningIndicator(controller)
-                    else
-                      if (controller.isCorrect != null)
-                        _buildAnswerFeedback(controller),
-                    if (controller.streak > 0)
-                      _buildStreakDisplay(controller),
-                  ],
-                ),
-              ),
+      builder: (context, controller, child) => Expanded(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                if (!controller.isKeyboardMode && controller.isListening)
+                  _buildListeningIndicator(controller)
+                else if (controller.isCorrect != null)
+                  _buildAnswerFeedback(controller),
+                if (controller.streak > 0) _buildStreakDisplay(controller),
+              ],
             ),
           ),
+        ),
+      ),
     );
   }
 
@@ -277,8 +361,8 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
             color: controller.lastAnswer.isEmpty
                 ? Colors.orange
                 : controller.isCorrect!
-                ? Colors.green
-                : Colors.red,
+                    ? Colors.green
+                    : Colors.red,
           ),
         ),
       ],
@@ -287,15 +371,15 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
 
   String _getFeedbackText(ExerciseController controller) {
     final correctAnswer = controller.getCorrectAnswer();
-    
+
     if (controller.lastAnswer.isEmpty) {
       return 'Vous n\'avez rien proposé, la réponse correcte est $correctAnswer';
     }
-    
+
     return controller.isCorrect!
         ? 'Parfait, la réponse est bien : ${controller.lastAnswer}'
         : 'Non, vous avez proposé ${controller.lastAnswer} '
-          'mais la bonne réponse est $correctAnswer';
+            'mais la bonne réponse est $correctAnswer';
   }
 
   Widget _buildStreakDisplay(ExerciseController controller) {
@@ -323,7 +407,7 @@ class _ExercisePageState extends State<ExercisePage> with TickerProviderStateMix
             onSubmit: () {
               controller.triggerAnswerCheck();
             },
-           // color: widget.subject.color,
+            // color: widget.subject.color,
           );
         }
         return const SizedBox.shrink();

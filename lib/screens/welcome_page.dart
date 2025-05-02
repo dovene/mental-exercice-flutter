@@ -1,10 +1,5 @@
 // lib/screens/welcome_page.dart
 import 'package:flutter/material.dart';
-import '../models/subject.dart';
-import '../services/database_helper.dart';
-import 'exercise_page.dart';
-
-import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../models/subject.dart';
 import '../services/database_helper.dart';
@@ -17,14 +12,15 @@ class WelcomePage extends StatefulWidget {
   _WelcomePageState createState() => _WelcomePageState();
 }
 
-class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStateMixin {
+class _WelcomePageState extends State<WelcomePage>
+    with SingleTickerProviderStateMixin {
   // Filter options
   String _selectedClassLevel = "Tous";
   List<String> _classLevels = ["Tous", "CP", "CE1", "CE2", "CM1", "CM2"];
-  
+
   // Animation
   late AnimationController _animationController;
-  
+
   // Stats for subjects
   Map<SubjectType, Map<String, dynamic>> _subjectStats = {};
   bool _isLoadingStats = true;
@@ -36,18 +32,19 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
       vsync: this,
       duration: const Duration(seconds: 20),
     )..repeat();
-    
+
     _loadAllSubjectStats();
   }
-  
+
   Future<void> _loadAllSubjectStats() async {
     setState(() {
       _isLoadingStats = true;
     });
-    
+
     try {
       for (var subjectType in SubjectType.values) {
-        final stats = await DatabaseHelper.instance.getStats(subjectType: subjectType);
+        final stats =
+            await DatabaseHelper.instance.getStats(subjectType: subjectType);
         setState(() {
           _subjectStats[subjectType] = stats;
         });
@@ -70,14 +67,21 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final subjects = Subject.getAllSubjects();
+    final filteredSubjects = _selectedClassLevel == "Tous"
+        ? subjects
+        // Updated filter to check if the subject's classLevels contains the selected class level
+        : subjects
+            .where((s) => s.classLevels.contains(_selectedClassLevel))
+            .toList();
+
     final screenSize = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       body: Stack(
         children: [
           // Animated background
           _buildAnimatedBackground(),
-          
+
           // Main content
           SafeArea(
             child: Column(
@@ -85,11 +89,7 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
                 _buildHeader(screenSize),
                 _buildFilterSection(),
                 Expanded(
-                  child: _buildSubjectGrid(
-                    _selectedClassLevel == "Tous" 
-                      ? subjects 
-                      : subjects.where((s) => s.classLevel == _selectedClassLevel).toList()
-                  ),
+                  child: _buildSubjectGrid(filteredSubjects),
                 ),
               ],
             ),
@@ -98,7 +98,7 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
       ),
     );
   }
-  
+
   Widget _buildAnimatedBackground() {
     return AnimatedBuilder(
       animation: _animationController,
@@ -163,7 +163,9 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: _classLevels.map((level) => _buildClassFilterChip(level)).toList(),
+              children: _classLevels
+                  .map((level) => _buildClassFilterChip(level))
+                  .toList(),
             ),
           ),
         ],
@@ -173,7 +175,7 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
 
   Widget _buildClassFilterChip(String level) {
     final isSelected = _selectedClassLevel == level;
-    
+
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: FilterChip(
@@ -213,9 +215,10 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
 
   Widget _buildSubjectCard(Subject subject) {
     // Get stats for this subject
-    final stats = _subjectStats[subject.type] ?? {'total': 0, 'correct': 0, 'percentage': 0};
+    final stats = _subjectStats[subject.type] ??
+        {'total': 0, 'correct': 0, 'percentage': 0};
     final hasStats = (stats['total'] as int) > 0;
-    
+
     return GestureDetector(
       onTap: () => _navigateToExercise(subject),
       child: Card(
@@ -229,7 +232,7 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
           child: Column(
             children: [
               Expanded(
-                flex: 3,
+                flex: 2,
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -246,24 +249,24 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
                       alignment: Alignment.center,
                       children: [
                         // Animated background shapes
-                        ...List.generate(3, (i) => 
-                          Positioned(
-                            left: 20.0 * i,
-                            top: 15.0 * i,
-                            child: Opacity(
-                              opacity: 0.2,
-                              child: Transform.rotate(
-                                angle: 0.2 * i,
-                                child: Icon(
-                                  subject.icon,
-                                  size: (40 - (5 * i)).toDouble(),
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          )
-                        ),
-                        
+                        ...List.generate(
+                            3,
+                            (i) => Positioned(
+                                  left: 20.0 * i,
+                                  top: 15.0 * i,
+                                  child: Opacity(
+                                    opacity: 0.2,
+                                    child: Transform.rotate(
+                                      angle: 0.2 * i,
+                                      child: Icon(
+                                        subject.icon,
+                                        size: (40 - (5 * i)).toDouble(),
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                )),
+
                         // Main icon
                         Icon(
                           subject.icon,
@@ -288,48 +291,34 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
                         subject.name,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                          fontSize: 14,
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              subject.classLevel,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                              ),
+                      // Show class levels in a scrollable row for subjects with multiple levels
+                      if (hasStats) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getColorForPercentage(
+                                    stats['percentage'] as int)
+                                .withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${stats['percentage']}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: _getColorForPercentage(
+                                  stats['percentage'] as int),
                             ),
                           ),
-                          if (hasStats) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: _getColorForPercentage(stats['percentage'] as int).withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${stats['percentage']}%',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: _getColorForPercentage(stats['percentage'] as int),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -363,24 +352,24 @@ class _WelcomePageState extends State<WelcomePage> with SingleTickerProviderStat
 // Background painter for animated shapes
 class BackgroundPainter extends CustomPainter {
   final double animationValue;
-  
+
   BackgroundPainter(this.animationValue);
-  
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..style = PaintingStyle.fill;
-    
+    final paint = Paint()..style = PaintingStyle.fill;
+
     // Draw animated shapes in the background
     for (int i = 0; i < 10; i++) {
       final offset = i * 0.1;
       final position = (animationValue + offset) % 1.0;
-      
+
       final x = size.width * (0.1 + position * 0.8);
       final y = size.height * (0.1 + math.sin(position * math.pi) * 0.8);
-      
-      final radius = size.width * 0.03 + size.width * 0.02 * math.sin(position * math.pi * 2);
-      
+
+      final radius = size.width * 0.03 +
+          size.width * 0.02 * math.sin(position * math.pi * 2);
+
       // Alternate between math-related shapes
       switch (i % 4) {
         case 0: // Plus sign
@@ -388,13 +377,17 @@ class BackgroundPainter extends CustomPainter {
           canvas.drawCircle(Offset(x, y), radius, paint);
           paint.color = Colors.blue.withOpacity(0.2);
           canvas.drawRect(
-            Rect.fromCenter(center: Offset(x, y), width: radius * 0.6, height: radius * 2),
-            paint
-          );
+              Rect.fromCenter(
+                  center: Offset(x, y),
+                  width: radius * 0.6,
+                  height: radius * 2),
+              paint);
           canvas.drawRect(
-            Rect.fromCenter(center: Offset(x, y), width: radius * 2, height: radius * 0.6),
-            paint
-          );
+              Rect.fromCenter(
+                  center: Offset(x, y),
+                  width: radius * 2,
+                  height: radius * 0.6),
+              paint);
           break;
         case 1: // Circle (zero)
           paint.color = Colors.red.withOpacity(0.1);
@@ -407,9 +400,11 @@ class BackgroundPainter extends CustomPainter {
           canvas.drawCircle(Offset(x, y), radius, paint);
           paint.color = Colors.green.withOpacity(0.2);
           canvas.drawRect(
-            Rect.fromCenter(center: Offset(x, y), width: radius * 2, height: radius * 0.6),
-            paint
-          );
+              Rect.fromCenter(
+                  center: Offset(x, y),
+                  width: radius * 2,
+                  height: radius * 0.6),
+              paint);
           break;
         case 3: // Multiplication cross
           paint.color = Colors.purple.withOpacity(0.1);
@@ -419,203 +414,19 @@ class BackgroundPainter extends CustomPainter {
           canvas.translate(x, y);
           canvas.rotate(math.pi / 4);
           canvas.drawRect(
-            Rect.fromCenter(center: Offset.zero, width: radius * 0.6, height: radius * 2),
-            paint
-          );
+              Rect.fromCenter(
+                  center: Offset.zero, width: radius * 0.6, height: radius * 2),
+              paint);
           canvas.drawRect(
-            Rect.fromCenter(center: Offset.zero, width: radius * 2, height: radius * 0.6),
-            paint
-          );
+              Rect.fromCenter(
+                  center: Offset.zero, width: radius * 2, height: radius * 0.6),
+              paint);
           canvas.restore();
           break;
       }
     }
   }
-  
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
-/*class WelcomePage extends StatefulWidget {
-  const WelcomePage({Key? key}) : super(key: key);
-
-  @override
-  _WelcomePageState createState() => _WelcomePageState();
-}
-
-class _WelcomePageState extends State<WelcomePage> {
-  // Filter options
-  String _selectedClassLevel = "Tous";
-  List<String> _classLevels = ["Tous", "CP", "CE1", "CE2", "CM1", "CM2"];
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final subjects = Subject.getAllSubjects();
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Math Pour Enfants'),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          _buildHeaderSection(),
-          _buildFilterSection(),
-          Expanded(
-            child: _buildSubjectGrid(
-              _selectedClassLevel == "Tous" 
-                ? subjects 
-                : subjects.where((s) => s.classLevel == _selectedClassLevel).toList()
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      child: Column(
-        children: [
-          const Text(
-            'Bienvenue!',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Choisis un sujet pour commencer à t\'exercer',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        children: [
-          const Text('Classe: ', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _classLevels.map((level) => _buildClassFilterChip(level)).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildClassFilterChip(String level) {
-    final isSelected = _selectedClassLevel == level;
-    
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(level),
-        selected: isSelected,
-        selectedColor: Colors.blue.shade100,
-        backgroundColor: Colors.grey.shade200,
-        onSelected: (bool selected) {
-          setState(() {
-            _selectedClassLevel = selected ? level : "Tous";
-          });
-        },
-      ),
-    );
-  }
-
-  Widget _buildSubjectGrid(List<Subject> subjects) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.95,
-      ),
-      itemCount: subjects.length,
-      itemBuilder: (context, index) {
-        return _buildSubjectCard(subjects[index]);
-      },
-    );
-  }
-
-  Widget _buildSubjectCard(Subject subject) {
-    return GestureDetector(
-      onTap: () => _navigateToExercise(subject),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Column(
-            children: [
-              Expanded(
-                child: Container(
-                  color: subject.color.withOpacity(0.8),
-                  child: Center(
-                    child: Icon(
-                      subject.icon,
-                      size: 48,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Text(
-                      subject.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Classe ${subject.classLevel}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToExercise(Subject subject) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ExercisePage(subject: subject),
-      ),
-    );
-  }
-}*/
