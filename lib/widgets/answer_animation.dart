@@ -26,11 +26,10 @@ class _CorrectAnswerAnimationState extends State<CorrectAnswerAnimation>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration:
-          const Duration(milliseconds: 1500), // Shorter duration (1.5 seconds)
+      duration: const Duration(milliseconds: 1500),
     )..forward();
 
-    // Generate more varied firework particles
+    // Generate firework/star particles
     _particles = List.generate(150, (_) => _createParticle());
   }
 
@@ -40,7 +39,7 @@ class _CorrectAnswerAnimationState extends State<CorrectAnswerAnimation>
     final double speed = _random.nextDouble() * 0.7 + 0.5;
     final double size = _random.nextDouble() * 8 + 2;
 
-    // Create a more interesting particle with twinkle effect
+    // Create particle with twinkle effect
     return Particle(
       angle: angle,
       distance: distance,
@@ -52,7 +51,7 @@ class _CorrectAnswerAnimationState extends State<CorrectAnswerAnimation>
   }
 
   Color _getRandomColor() {
-    // Brighter colors for fireworks/stars
+    // Bright, celebratory colors for fireworks
     final colors = [
       Colors.yellow,
       Colors.amber,
@@ -75,77 +74,82 @@ class _CorrectAnswerAnimationState extends State<CorrectAnswerAnimation>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Stack(
-          children: [
-            // Background particles (fireworks/stars)
-            ..._particles.map((particle) {
-              final progress = _controller.value;
+    return Stack(
+      children: [
+        // Base content
+        widget.child,
 
-              // Make the particles appear and disappear with a nice fade
-              double fadeInOut;
-              if (progress < 0.1) {
-                fadeInOut = progress * 10;
-              } else if (progress > 0.7) {
-                fadeInOut = 1.0 - (progress - 0.7) / 0.3;
-              } else {
-                fadeInOut = 1.0;
-              }
+        // Fireworks overlay
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                // Particles layer
+                ..._particles.map((particle) {
+                  final progress = _controller.value;
 
-              // Ensure fadeInOut is between 0 and 1
-              fadeInOut = fadeInOut.clamp(0.0, 1.0);
+                  // Fade effect
+                  double opacity;
+                  if (progress < 0.2) {
+                    opacity = progress * 5; // Quick fade in
+                  } else if (progress > 0.8) {
+                    opacity = (1 - progress) * 5; // Fade out
+                  } else {
+                    opacity = 1.0;
+                  }
 
-              // Movement with easing
-              final movement = Curves.easeOutQuart.transform(progress);
+                  // Movement calculation
+                  final distance = particle.distance * progress;
+                  final x = cos(particle.angle) * distance;
+                  final y = sin(particle.angle) * distance;
 
-              // Calculate position with curved motion
-              final x = cos(particle.angle) * particle.distance * movement;
-              final y = sin(particle.angle) * particle.distance * movement;
+                  // Twinkle effect
+                  final twinkle =
+                      sin(progress * 10 * particle.twinkleSpeed) * 0.5 + 0.5;
 
-              // Twinkle effect (pulsing size/opacity)
-              final twinkle =
-                  0.5 + 0.5 * sin(progress / particle.twinkleSpeed * 10);
-
-              // Calculate final opacity and ensure it's valid
-              final finalOpacity =
-                  (fadeInOut * (0.5 + 0.5 * twinkle)).clamp(0.0, 1.0);
-
-              return Positioned(
-                left: MediaQuery.of(context).size.width / 2 + x,
-                top: MediaQuery.of(context).size.height / 2 + y,
-                child: Opacity(
-                  opacity: finalOpacity,
-                  child: Container(
-                    width: particle.size * (0.8 + 0.2 * twinkle),
-                    height: particle.size * (0.8 + 0.2 * twinkle),
-                    decoration: BoxDecoration(
-                      color: particle.color,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: particle.color.withOpacity(0.5),
-                          blurRadius: 3,
-                          spreadRadius: 1,
+                  return Positioned(
+                    left: MediaQuery.of(context).size.width / 2 +
+                        x -
+                        (particle.size / 2),
+                    top: MediaQuery.of(context).size.height / 2 +
+                        y -
+                        (particle.size / 2),
+                    child: Opacity(
+                      opacity: opacity * twinkle,
+                      child: Container(
+                        width: particle.size,
+                        height: particle.size,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: particle.color,
+                          boxShadow: [
+                            BoxShadow(
+                              color: particle.color.withOpacity(0.8),
+                              blurRadius: particle.size * 2,
+                              spreadRadius: particle.size / 2,
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+
+                // Scale animation for main content
+                Positioned.fill(
+                  child: Center(
+                    child: Transform.scale(
+                      scale: 1.0 + sin(progress * pi) * 0.1,
+                      child: Container(),
                     ),
                   ),
                 ),
-              );
-            }),
-
-            // Main content with scale and rotation animation
-            Center(
-              child: Transform.scale(
-                scale: 1.0 + sin(progress * pi) * 0.1, // Gentle bounce
-                child: widget.child,
-              ),
-            ),
-          ],
-        );
-      },
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -177,7 +181,7 @@ class _IncorrectAnswerAnimationState extends State<IncorrectAnswerAnimation>
       duration: const Duration(milliseconds: 1000),
     );
 
-    // Create more engaging shake animation
+    // Enhanced shake animation with smoother transitions
     _shakeAnimation = TweenSequence<Offset>([
       TweenSequenceItem(
         tween: Tween(begin: Offset.zero, end: const Offset(-0.05, 0.0)),
@@ -212,7 +216,7 @@ class _IncorrectAnswerAnimationState extends State<IncorrectAnswerAnimation>
       curve: Curves.easeInOut,
     ));
 
-    // Add pulse animation for more visual feedback
+    // Add subtle pulse animation for enhanced visual feedback
     _pulseAnimation = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(begin: 1.0, end: 1.05),
@@ -227,7 +231,7 @@ class _IncorrectAnswerAnimationState extends State<IncorrectAnswerAnimation>
       curve: Curves.easeInOut,
     ));
 
-    // Start animation once
+    // Start animation
     _controller.forward();
   }
 
@@ -244,7 +248,7 @@ class _IncorrectAnswerAnimationState extends State<IncorrectAnswerAnimation>
       builder: (context, child) {
         return Stack(
           children: [
-            // Red overlay with pulsing opacity for better effect
+            // Subtle red overlay with pulsing opacity
             Positioned.fill(
               child: Opacity(
                 opacity:
@@ -274,7 +278,7 @@ class Particle {
   final double speed;
   final double size;
   final Color color;
-  final double twinkleSpeed; // Controls how fast the star twinkles
+  final double twinkleSpeed;
 
   Particle({
     required this.angle,

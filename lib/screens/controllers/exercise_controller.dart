@@ -301,6 +301,11 @@ class ExerciseController with ChangeNotifier {
     // Set the initial time (30 seconds for the exercise)
     _exerciseRemainingTime = _settings.waitingTime;
 
+    if (!_isKeyboardMode) {
+      // Lancer la reconnaissance vocale en mode voix
+      _startListening();
+    }
+
     // Only start the timer if it's enabled
     if (_isTimerEnabled) {
       _exerciseTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -308,7 +313,7 @@ class ExerciseController with ChangeNotifier {
           timer.cancel();
           // Time's up - record "Pas de réponse" if no answer given
           if (_isCorrect == null) {
-            _lastAnswer = "Pas de réponse";
+            _lastAnswer = "";
             _isCorrect = false;
             _saveExerciseHistory();
             _showAnswerAnimation = true;
@@ -388,10 +393,16 @@ class ExerciseController with ChangeNotifier {
 
         if (_isCorrect!) {
           _streak++;
-          _audioService.playCorrectSound();
+          // if is not keyboard mode, play sound
+          if (!_isKeyboardMode) {
+            _audioService.playCorrectSound();
+          }
         } else {
           _streak = 0; // Réinitialiser la série
-          _audioService.playErrorSound();
+          // if is not keyboard mode, play sound
+          if (!_isKeyboardMode) {
+            _audioService.playErrorSound();
+          }
         }
       } catch (e) {
         // En cas d'erreur de parsing de la réponse

@@ -10,6 +10,7 @@ class Subject {
   final IconData icon;
   final List<String> classLevels;
   final Color color;
+  final String? shortName;
 
   Subject({
     required this.name,
@@ -18,6 +19,7 @@ class Subject {
     required this.icon,
     required this.classLevels,
     required this.color,
+    this.shortName,
   });
 
   static List<Subject> getAllSubjects() {
@@ -29,6 +31,7 @@ class Subject {
         icon: Icons.grid_on,
         classLevels: ["CE2", "CM1", "CM2"],
         color: Colors.purple,
+        shortName: "Tables",
       ),
       Subject(
         name: "Addition",

@@ -1,13 +1,12 @@
-// lib/screens/exercise_page.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/subject.dart';
+import '../services/database_helper.dart';
+import '../widgets/achievement_indicator.dart';
 import '../widgets/answer_animation.dart';
 import '../widgets/countdown_timer.dart';
 import '../widgets/number_keyboard.dart';
-import '../widgets/star_rating.dart';
 import 'controllers/exercise_controller.dart';
 import 'history_page.dart';
 import 'settings_page.dart';
@@ -27,11 +26,33 @@ class _ExercisePageState extends State<ExercisePage>
   late AnimationController _scoreController;
   late Animation<double> _scoreAnimation;
 
+  // Statistics
+  int _totalQuestions = 0;
+  int _correctAnswers = 0;
+  int _successRate = 0;
+
   @override
   void initState() {
     super.initState();
     _controller = ExerciseController(widget.subject.type);
     _initializeScoreController();
+    _loadSuccessStats();
+  }
+
+  // Load success stats from the database using the same logic as history page
+  Future<void> _loadSuccessStats() async {
+    try {
+      final stats = await DatabaseHelper.instance
+          .getStats(subjectType: widget.subject.type);
+
+      setState(() {
+        _totalQuestions = stats['total'] as int;
+        _correctAnswers = stats['correct'] as int;
+        _successRate = stats['percentage'] as int;
+      });
+    } catch (e) {
+      debugPrint('Error loading success stats: $e');
+    }
   }
 
   void _initializeScoreController() {
@@ -50,6 +71,14 @@ class _ExercisePageState extends State<ExercisePage>
       value: _controller,
       child: Consumer<ExerciseController>(
         builder: (context, controller, child) {
+          // Listen for changes in controller state to update stats
+          if (controller.lastAnswer.isNotEmpty &&
+              controller.isCorrect != null &&
+              !controller.showAnswerAnimation) {
+            // Update only when a new answer has been processed
+            _loadSuccessStats();
+          }
+
           // Base content scaffold
           final Widget content = Scaffold(
             appBar: _buildAppBar(),
@@ -57,7 +86,7 @@ class _ExercisePageState extends State<ExercisePage>
               child: Column(
                 children: [
                   _buildModeAndTimerSection(),
-                  // show timer onnly if the timer is enabled
+                  // show timer only if the timer is enabled
                   if (controller.isTimerEnabled) _buildTimer(),
                   _buildQuestionSection(),
                   _buildFeedbackSection(),
@@ -96,29 +125,24 @@ class _ExercisePageState extends State<ExercisePage>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      title: Text(widget.subject.name),
+      title: Text(
+        widget.subject.name,
+        style: const TextStyle(fontSize: 18),
+      ),
       backgroundColor: widget.subject.color,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(
+          Icons.arrow_back,
+          color: Colors.white,
+        ),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
-        Consumer<ExerciseController>(
-          builder: (context, controller, child) {
-            return Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: Center(
-                  /*child: StarRating(
-                  score: controller.score,
-                  activeColor: widget.subject.color,
-                  size: 20,
-                ),*/
-                  ),
-            );
-          },
-        ),
         IconButton(
-          icon: const Icon(Icons.history),
+          icon: const Icon(
+            Icons.history,
+            color: Colors.white,
+          ),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
@@ -127,7 +151,7 @@ class _ExercisePageState extends State<ExercisePage>
           ),
         ),
         IconButton(
-          icon: const Icon(Icons.settings),
+          icon: const Icon(Icons.settings, color: Colors.white),
           onPressed: () => _navigateToSettings(),
         ),
       ],
@@ -153,30 +177,40 @@ class _ExercisePageState extends State<ExercisePage>
     return Consumer<ExerciseController>(
       builder: (context, controller, child) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Column(
           children: [
-            // Voice mode toggle
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Switch(
-                  value: !controller.isKeyboardMode,
-                  onChanged: (value) => controller.toggleInputMode(value),
-                  activeColor: widget.subject.color,
+                // Voice mode toggle
+                Row(
+                  children: [
+                    Switch(
+                      value: !controller.isKeyboardMode,
+                      onChanged: (value) => controller.toggleInputMode(value),
+                      activeColor: widget.subject.color,
+                    ),
+                    const Text('Mode voix'),
+                  ],
                 ),
-                const Text('Mode voix'),
+                // Timer enable/disable
+                Row(
+                  children: [
+                    Switch(
+                      value: controller.isTimerEnabled,
+                      onChanged: (value) => controller.toggleTimer(value),
+                      activeColor: widget.subject.color,
+                    ),
+                    const Text('Timer'),
+                  ],
+                ),
               ],
             ),
-            // Timer enable/disable
-            Row(
-              children: [
-                Switch(
-                  value: controller.isTimerEnabled,
-                  onChanged: (value) => controller.toggleTimer(value),
-                  activeColor: widget.subject.color,
-                ),
-                const Text('Timer'),
-              ],
+            const SizedBox(height: 8),
+            // Achievement indicator
+            AchievementIndicator(
+              score: _successRate,
+              color: widget.subject.color,
             ),
           ],
         ),
@@ -243,13 +277,7 @@ class _ExercisePageState extends State<ExercisePage>
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            if (controller.currentNumber1 == 0)
-              Text(
-                'Prêt à t\'exercer sur ${widget.subject.name} ?',
-                style: const TextStyle(fontSize: 24),
-                textAlign: TextAlign.center,
-              )
-            else
+            if (controller.currentNumber1 != 0)
               Text(
                 _getQuestionText(controller),
                 style: const TextStyle(fontSize: 24),
@@ -312,7 +340,7 @@ class _ExercisePageState extends State<ExercisePage>
                   _buildListeningIndicator(controller)
                 else if (controller.isCorrect != null)
                   _buildAnswerFeedback(controller),
-                if (controller.streak > 0) _buildStreakDisplay(controller),
+                // if (controller.streak > 0) _buildStreakDisplay(controller),
               ],
             ),
           ),
@@ -373,13 +401,13 @@ class _ExercisePageState extends State<ExercisePage>
     final correctAnswer = controller.getCorrectAnswer();
 
     if (controller.lastAnswer.isEmpty) {
-      return 'Vous n\'avez rien proposé, la réponse correcte est $correctAnswer';
+      return 'Désolé, la bonne réponse était $correctAnswer !';
     }
 
     return controller.isCorrect!
-        ? 'Parfait, la réponse est bien : ${controller.lastAnswer}'
-        : 'Non, vous avez proposé ${controller.lastAnswer} '
-            'mais la bonne réponse est $correctAnswer';
+        ? 'Génial, La bonne réponse était bien : ${controller.lastAnswer}'
+        : 'Désolé, vous avez proposé ${controller.lastAnswer} '
+            'mais la bonne réponse était $correctAnswer';
   }
 
   Widget _buildStreakDisplay(ExerciseController controller) {
@@ -407,7 +435,6 @@ class _ExercisePageState extends State<ExercisePage>
             onSubmit: () {
               controller.triggerAnswerCheck();
             },
-            // color: widget.subject.color,
           );
         }
         return const SizedBox.shrink();
