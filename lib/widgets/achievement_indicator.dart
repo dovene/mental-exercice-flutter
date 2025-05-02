@@ -20,7 +20,7 @@ class AchievementIndicator extends StatelessWidget {
   }
 
   String _getMessage() {
-    if (score == 0) return 'Allez commence !';
+    if (score == 0) return 'Allez lance-toi !';
     if (score >= 90) return 'Super champion !';
     if (score >= 80) return 'Très bien !';
     if (score >= 70) return 'Bien !';

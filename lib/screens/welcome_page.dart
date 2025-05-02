@@ -141,7 +141,7 @@ class _WelcomePageState extends State<WelcomePage>
           ),
           const SizedBox(height: 10),
           const Text(
-            'Apprends les maths',
+            'Les maths, c\'est fun et j\'adore ❤️',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -196,7 +196,7 @@ class _WelcomePageState extends State<WelcomePage>
   Widget _buildSubjectCard(Subject subject) {
     final stats = _subjectStats[subject.type] ??
         {'total': 0, 'correct': 0, 'percentage': 0};
-    final emoji = _getAchievementEmoji(stats['percentage'] as int) ;
+    final emoji = _getAchievementEmoji(stats['percentage'] as int);
 
     return GestureDetector(
       onTap: () => _navigateToExercise(subject),
