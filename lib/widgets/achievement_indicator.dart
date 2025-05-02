@@ -11,6 +11,7 @@ class AchievementIndicator extends StatelessWidget {
   }) : super(key: key);
 
   String _getEmoji() {
+    if (score == 0) return '🤞';
     if (score >= 90) return '🌟'; // Superstar
     if (score >= 80) return '🎉'; // Great
     if (score >= 70) return '😊'; // Good
@@ -19,6 +20,7 @@ class AchievementIndicator extends StatelessWidget {
   }
 
   String _getMessage() {
+    if (score == 0) return 'Allez commence !';
     if (score >= 90) return 'Super champion !';
     if (score >= 80) return 'Très bien !';
     if (score >= 70) return 'Bien !';

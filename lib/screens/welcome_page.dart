@@ -1,4 +1,3 @@
-// lib/screens/welcome_page.dart
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../models/subject.dart';
@@ -40,7 +39,6 @@ class _WelcomePageState extends State<WelcomePage>
     setState(() {
       _isLoadingStats = true;
     });
-
     try {
       for (var subjectType in SubjectType.values) {
         final stats =
@@ -50,7 +48,7 @@ class _WelcomePageState extends State<WelcomePage>
         });
       }
     } catch (e) {
-      debugPrint('Error loading stats: $e');
+      debugPrint('Error loading stats: \$e');
     } finally {
       setState(() {
         _isLoadingStats = false;
@@ -64,12 +62,21 @@ class _WelcomePageState extends State<WelcomePage>
     super.dispose();
   }
 
+  // Return different emojis based on score, with a special hug emoji for zero
+  String _getAchievementEmoji(int score) {
+    if (score == 0) return '🤞';
+    if (score >= 90) return '🌟';
+    if (score >= 80) return '🎉';
+    if (score >= 70) return '😊';
+    if (score >= 50) return '🙂';
+    return '💪';
+  }
+
   @override
   Widget build(BuildContext context) {
     final subjects = Subject.getAllSubjects();
     final filteredSubjects = _selectedClassLevel == "Tous"
         ? subjects
-        // Updated filter to check if the subject's classLevels contains the selected class level
         : subjects
             .where((s) => s.classLevels.contains(_selectedClassLevel))
             .toList();
@@ -79,10 +86,7 @@ class _WelcomePageState extends State<WelcomePage>
     return Scaffold(
       body: Stack(
         children: [
-          // Animated background
           _buildAnimatedBackground(),
-
-          // Main content
           SafeArea(
             child: Column(
               children: [
@@ -137,7 +141,7 @@ class _WelcomePageState extends State<WelcomePage>
           ),
           const SizedBox(height: 10),
           const Text(
-            'Apprends les maths en t\'amusant !',
+            'Apprends les maths',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
@@ -173,9 +177,118 @@ class _WelcomePageState extends State<WelcomePage>
     );
   }
 
+  Widget _buildSubjectGrid(List<Subject> subjects) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.85,
+      ),
+      itemCount: subjects.length,
+      itemBuilder: (context, index) {
+        return _buildSubjectCard(subjects[index]);
+      },
+    );
+  }
+
+  Widget _buildSubjectCard(Subject subject) {
+    final stats = _subjectStats[subject.type] ??
+        {'total': 0, 'correct': 0, 'percentage': 0};
+    final emoji = _getAchievementEmoji(stats['percentage'] as int) ;
+
+    return GestureDetector(
+      onTap: () => _navigateToExercise(subject),
+      child: Card(
+        elevation: 5,
+        shadowColor: subject.color.withOpacity(0.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 2,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [subject.color.withOpacity(0.7), subject.color],
+                    ),
+                  ),
+                  child: Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ...List.generate(
+                          3,
+                          (i) => Positioned(
+                            left: 20.0 * i,
+                            top: 15.0 * i,
+                            child: Opacity(
+                              opacity: 0.2,
+                              child: Transform.rotate(
+                                angle: 0.2 * i,
+                                child: Icon(subject.icon,
+                                    size: (40 - 5 * i).toDouble(),
+                                    color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ),
+                        AnimatedBuilder(
+                          animation: _animationController,
+                          builder: (context, child) {
+                            return Transform.rotate(
+                              angle: _animationController.value * 2 * math.pi,
+                              child: Icon(subject.icon,
+                                  size: 40, color: Colors.white),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 1,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  width: double.infinity,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          subject.name,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      if (emoji != null) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          emoji,
+                          style: const TextStyle(fontSize: 18),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildClassFilterChip(String level) {
     final isSelected = _selectedClassLevel == level;
-
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: FilterChip(
@@ -197,182 +310,30 @@ class _WelcomePageState extends State<WelcomePage>
     );
   }
 
-  Widget _buildSubjectGrid(List<Subject> subjects) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: subjects.length,
-      itemBuilder: (context, index) {
-        return _buildSubjectCard(subjects[index]);
-      },
-    );
-  }
-
-  Widget _buildSubjectCard(Subject subject) {
-    // Get stats for this subject
-    final stats = _subjectStats[subject.type] ??
-        {'total': 0, 'correct': 0, 'percentage': 0};
-    final hasStats = (stats['total'] as int) > 0;
-
-    return GestureDetector(
-      onTap: () => _navigateToExercise(subject),
-      child: Card(
-        elevation: 5,
-        shadowColor: subject.color.withOpacity(0.5),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Column(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        subject.color.withOpacity(0.7),
-                        subject.color,
-                      ],
-                    ),
-                  ),
-                  child: Center(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        // Animated background shapes
-                        ...List.generate(
-                            3,
-                            (i) => Positioned(
-                                  left: 20.0 * i,
-                                  top: 15.0 * i,
-                                  child: Opacity(
-                                    opacity: 0.2,
-                                    child: Transform.rotate(
-                                      angle: 0.2 * i,
-                                      child: Icon(
-                                        subject.icon,
-                                        size: (40 - (5 * i)).toDouble(),
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                )),
-
-                        // Main icon
-                        Icon(
-                          subject.icon,
-                          size: 48,
-                          color: Colors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  width: double.infinity,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        subject.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 4),
-                      // Show class levels in a scrollable row for subjects with multiple levels
-                      if (hasStats) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: _getColorForPercentage(
-                                    stats['percentage'] as int)
-                                .withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${stats['percentage']}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: _getColorForPercentage(
-                                  stats['percentage'] as int),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _getColorForPercentage(int percentage) {
-    if (percentage >= 80) return Colors.green;
-    if (percentage >= 60) return Colors.orange;
-    return Colors.red;
-  }
-
   void _navigateToExercise(Subject subject) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ExercisePage(subject: subject),
-      ),
-    ).then((_) {
-      // Refresh stats when returning from exercise page
-      _loadAllSubjectStats();
-    });
+      MaterialPageRoute(builder: (context) => ExercisePage(subject: subject)),
+    ).then((_) => _loadAllSubjectStats());
   }
 }
 
-// Background painter for animated shapes
 class BackgroundPainter extends CustomPainter {
   final double animationValue;
-
   BackgroundPainter(this.animationValue);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..style = PaintingStyle.fill;
-
-    // Draw animated shapes in the background
     for (int i = 0; i < 10; i++) {
       final offset = i * 0.1;
       final position = (animationValue + offset) % 1.0;
-
       final x = size.width * (0.1 + position * 0.8);
       final y = size.height * (0.1 + math.sin(position * math.pi) * 0.8);
-
       final radius = size.width * 0.03 +
           size.width * 0.02 * math.sin(position * math.pi * 2);
-
-      // Alternate between math-related shapes
       switch (i % 4) {
-        case 0: // Plus sign
+        case 0:
           paint.color = Colors.blue.withOpacity(0.1);
           canvas.drawCircle(Offset(x, y), radius, paint);
           paint.color = Colors.blue.withOpacity(0.2);
@@ -389,13 +350,13 @@ class BackgroundPainter extends CustomPainter {
                   height: radius * 0.6),
               paint);
           break;
-        case 1: // Circle (zero)
+        case 1:
           paint.color = Colors.red.withOpacity(0.1);
           canvas.drawCircle(Offset(x, y), radius, paint);
           paint.color = Colors.red.withOpacity(0.2);
           canvas.drawCircle(Offset(x, y), radius * 0.7, paint);
           break;
-        case 2: // Minus sign
+        case 2:
           paint.color = Colors.green.withOpacity(0.1);
           canvas.drawCircle(Offset(x, y), radius, paint);
           paint.color = Colors.green.withOpacity(0.2);
@@ -406,7 +367,7 @@ class BackgroundPainter extends CustomPainter {
                   height: radius * 0.6),
               paint);
           break;
-        case 3: // Multiplication cross
+        case 3:
           paint.color = Colors.purple.withOpacity(0.1);
           canvas.drawCircle(Offset(x, y), radius, paint);
           paint.color = Colors.purple.withOpacity(0.2);
