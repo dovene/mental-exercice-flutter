@@ -31,7 +31,7 @@ class ExerciseController with ChangeNotifier {
   bool _isFirstAttempt = true; // Flag to track if it's the first attempt
 
   int _exerciseRemainingTime = 0; // Timer countdown for exercise
-  bool _isTimerEnabled = true; // Flag for timer enable/disable
+  bool _isTimerEnabled = false; // Flag for timer enable/disable
   bool _isExerciseActive = false; // Flag to track if exercise has started
 
   int _score = 0;
@@ -105,7 +105,7 @@ class ExerciseController with ChangeNotifier {
   Future<void> _loadTimerPreference() async {
     final prefs = await SharedPreferences.getInstance();
     _isTimerEnabled =
-        prefs.getBool('timer_enabled_${subjectType.toString()}') ?? true;
+        prefs.getBool('timer_enabled_${subjectType.toString()}') ?? false;
 
     notifyListeners();
   }

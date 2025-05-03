@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 enum SubjectType {
   tables,
   addition,
+  problemes,
   soustraction,
   multiplication,
   division,
-  problemes
 }
 
 class Subject {
@@ -32,6 +32,14 @@ class Subject {
   static List<Subject> getAllSubjects() {
     return [
       Subject(
+        name: "Addition",
+        description: "Apprendre à additionner",
+        type: SubjectType.addition,
+        icon: Icons.add,
+        classLevels: ["CP", "CE1", "CE2", "CM1", "CM2"],
+        color: Colors.blue,
+      ),
+      Subject(
         name: "Tables de multiplication",
         description: "Apprendre les tables de multiplication",
         type: SubjectType.tables,
@@ -41,12 +49,12 @@ class Subject {
         shortName: "Tables",
       ),
       Subject(
-        name: "Addition",
-        description: "Apprendre à additionner",
-        type: SubjectType.addition,
-        icon: Icons.add,
+        name: "Problèmes",
+        description: "Résoudre des problèmes arithmétiques",
+        type: SubjectType.problemes,
+        icon: Icons.help_outline,
         classLevels: ["CP", "CE1", "CE2", "CM1", "CM2"],
-        color: Colors.blue,
+        color: Colors.teal,
       ),
       Subject(
         name: "Soustraction",
@@ -71,14 +79,6 @@ class Subject {
         icon: Icons.border_vertical,
         classLevels: ["CM1", "CM2"],
         color: Colors.orange,
-      ),
-      Subject(
-        name: "Problèmes",
-        description: "Résoudre des problèmes arithmétiques",
-        type: SubjectType.problemes,
-        icon: Icons.help_outline,
-        classLevels: ["CP", "CE1", "CE2", "CM1", "CM2"],
-        color: Colors.teal,
       ),
     ];
   }

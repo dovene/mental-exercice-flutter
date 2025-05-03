@@ -85,7 +85,7 @@ class NumberKeyboard extends StatelessWidget {
               backgroundColor: Colors.green,
             ),
             child: const Text(
-              'Envoyer',
+              'Répondre',
               style: TextStyle(fontSize: 20, color: Colors.white),
             ),
           ),
