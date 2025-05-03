@@ -9,6 +9,7 @@ import '../../../services/audio_service.dart';
 import '../../../services/database_helper.dart';
 import '../../../services/speech_service.dart';
 import '../../models/operations_settings.dart';
+import '../../services/problem_generator.dart';
 
 class ExerciseController with ChangeNotifier {
   final AudioService _audioService = AudioService();
@@ -27,6 +28,7 @@ class ExerciseController with ChangeNotifier {
   int _currentNumber2 = 0;
   bool _isKeyboardMode = true;
   String _currentInput = '';
+  bool _isFirstAttempt = true; // Flag to track if it's the first attempt
 
   int _exerciseRemainingTime = 0; // Timer countdown for exercise
   bool _isTimerEnabled = true; // Flag for timer enable/disable
@@ -50,6 +52,7 @@ class ExerciseController with ChangeNotifier {
   int get currentNumber2 => _currentNumber2;
   bool get isKeyboardMode => _isKeyboardMode;
   String get currentInput => _currentInput;
+  bool get isFirstAttempt => _isFirstAttempt;
 
   int get exerciseRemainingTime => _exerciseRemainingTime;
   bool get isTimerEnabled => _isTimerEnabled;
@@ -57,6 +60,10 @@ class ExerciseController with ChangeNotifier {
   int get streak => _streak;
   OperationSettings get settings => _settings;
   bool get showAnswerAnimation => _showAnswerAnimation;
+
+  final ProblemGenerator _problemGenerator = ProblemGenerator();
+  MathProblem? _currentProblem;
+  MathProblem? get currentProblem => _currentProblem;
 
   ExerciseController(this.subjectType) {
     _loadSettings();
@@ -165,6 +172,10 @@ class ExerciseController with ChangeNotifier {
   }
 
   void startExercise() {
+    if (_isFirstAttempt) {
+      _isFirstAttempt = false;
+    }
+
     // Cancel any existing timers first
     _exerciseTimer?.cancel();
 
@@ -172,7 +183,12 @@ class ExerciseController with ChangeNotifier {
     _isExerciseActive = true;
 
     // Generate new question and start countdown
-    _generateNewQuestion();
+    if (subjectType == SubjectType.problemes) {
+      _generateNewProblem();
+    } else {
+      _generateNewQuestion();
+    }
+
     _startExerciseTimer();
 
     // Exercise timer will be started after countdown completes
@@ -434,21 +450,27 @@ class ExerciseController with ChangeNotifier {
         return _currentNumber1 - _currentNumber2;
       case SubjectType.division:
         return _currentNumber1 ~/ _currentNumber2; // Division entière
+      case SubjectType.problemes:
+        return _currentProblem?.answer ?? 0; // Utiliser la réponse du problème
     }
   }
 
   Future<void> _saveExerciseHistory() async {
-    if (_currentNumber1 == 0 || _currentNumber2 == 0) return;
+    if (subjectType != SubjectType.problemes &&
+        (_currentNumber1 == 0 || _currentNumber2 == 0)) return;
 
     try {
       final history = ExerciseHistory(
         id: DateTime.now().millisecondsSinceEpoch,
-        number1: _currentNumber1,
-        number2: _currentNumber2,
+        number1: subjectType == SubjectType.problemes
+            ? _currentProblem!.answer
+            : _currentNumber1,
+        number2: subjectType == SubjectType.problemes ? 0 : _currentNumber2,
         isCorrect: _isCorrect ?? false,
         givenAnswer: _lastAnswer,
         date: DateTime.now(),
         subjectType: subjectType,
+        problemText: _currentProblem?.text,
       );
 
       await DatabaseHelper.instance.insertExercise(history);
@@ -470,5 +492,30 @@ class ExerciseController with ChangeNotifier {
     _exerciseTimer?.cancel();
     _speechService.dispose();
     super.dispose();
+  }
+
+  void _generateNewProblem() {
+    // Clear previous state
+    _currentInput = '';
+    _isCorrect = null;
+    _lastAnswer = '';
+    _showAnswerAnimation = false;
+
+    // Generate a new problem
+    if (_settings.isHardMode) {
+      // For hard mode, 60% normal problems, 20% train problems, 20% two-step problems
+      int problemType = (DateTime.now().millisecondsSinceEpoch % 5);
+      if (problemType == 0) {
+        _currentProblem = _problemGenerator.generateTrainProblem();
+      } else if (problemType == 1) {
+        _currentProblem = _problemGenerator.generateTwoStepProblem();
+      } else {
+        _currentProblem = _problemGenerator.generateProblem(_settings);
+      }
+    } else {
+      _currentProblem = _problemGenerator.generateProblem(_settings);
+    }
+
+    notifyListeners();
   }
 }

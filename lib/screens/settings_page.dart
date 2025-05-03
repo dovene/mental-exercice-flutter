@@ -90,7 +90,10 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           if (widget.subject.type == SubjectType.tables)
             _buildTablesNumberSelector(),
-          if (widget.subject.type != SubjectType.tables)
+          // building the operation mode settings if the subject is neither tables and nor problemes
+
+          if (!(widget.subject.type == SubjectType.tables ||
+              widget.subject.type == SubjectType.problemes))
             _buildOperationModeSettings(),
           const SizedBox(height: 16),
           ElevatedButton(

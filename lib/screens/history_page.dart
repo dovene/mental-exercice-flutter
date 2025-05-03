@@ -86,7 +86,7 @@ class _HistoryPageState extends State<HistoryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Historique - ${subject.name}'),
+        title: const Text('Historique'),
         backgroundColor: subject.color,
         actions: [
           IconButton(
@@ -199,6 +199,9 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildHistoryItem(ExerciseHistory item) {
     // final dateFormat = DateFormat('dd/MM HH:mm');
     final subject = Subject.getSubjectByType(widget.subjectType);
+    final givenAnswerString =
+        'Réponse: ${item.givenAnswer.isEmpty ? 'Aucune réponse' : item.givenAnswer}';
+    final correctAnswerString = 'Bonne réponse: ${item.getCorrectAnswer()}';
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4.0),
@@ -212,10 +215,31 @@ class _HistoryPageState extends State<HistoryPage> {
         ),
         title: Text(
           item.getOperationText(),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: subject.type != SubjectType.problemes ? 16 : 14,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        subtitle: Text(
-            'Réponse: ${item.givenAnswer} (${item.isCorrect ? 'Correct' : 'Incorrect: ${item.getCorrectAnswer()}'})'),
+        subtitle: RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: givenAnswerString,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color.fromARGB(255, 105, 103, 103),
+                ),
+              ),
+              TextSpan(
+                text: '\n$correctAnswerString',
+                style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
         trailing: Container(
           width: 40,
           height: 40,

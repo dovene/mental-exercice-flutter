@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path, 
-      version: 2, 
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
@@ -38,16 +38,17 @@ class DatabaseHelper {
         isCorrect INTEGER NOT NULL,
         givenAnswer TEXT NOT NULL,
         date TEXT NOT NULL,
-        subjectType INTEGER DEFAULT 0
+        subjectType INTEGER DEFAULT 0,
+        problemText TEXT
       )
     ''');
   }
 
   // Pour gérer la migration des données existantes
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
+    if (oldVersion < 4) {
       // Ajouter la colonne subjectType si elle n'existe pas
-      await db.execute('ALTER TABLE exercises ADD COLUMN subjectType INTEGER DEFAULT 0');
+      await db.execute('ALTER TABLE exercises ADD COLUMN problemText TEXT');
     }
   }
 

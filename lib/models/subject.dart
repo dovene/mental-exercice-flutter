@@ -1,7 +1,14 @@
 // lib/models/subject.dart
 import 'package:flutter/material.dart';
 
-enum SubjectType { tables, addition, soustraction, multiplication, division }
+enum SubjectType {
+  tables,
+  addition,
+  soustraction,
+  multiplication,
+  division,
+  problemes
+}
 
 class Subject {
   final String name;
@@ -64,6 +71,14 @@ class Subject {
         icon: Icons.border_vertical,
         classLevels: ["CE2", "CM1", "CM2"],
         color: Colors.orange,
+      ),
+      Subject(
+        name: "Problèmes",
+        description: "Résoudre des problèmes arithmétiques",
+        type: SubjectType.problemes,
+        icon: Icons.help_outline,
+        classLevels: ["CE2", "CM1", "CM2"],
+        color: Colors.teal,
       ),
     ];
   }

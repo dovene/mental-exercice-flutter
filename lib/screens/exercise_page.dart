@@ -30,6 +30,7 @@ class _ExercisePageState extends State<ExercisePage>
   int _totalQuestions = 0;
   int _correctAnswers = 0;
   int _successRate = 0;
+  bool _isProblemSuject = false;
 
   @override
   void initState() {
@@ -37,6 +38,7 @@ class _ExercisePageState extends State<ExercisePage>
     _controller = ExerciseController(widget.subject.type);
     _initializeScoreController();
     _loadSuccessStats();
+    _isProblemSuject = widget.subject.type == SubjectType.problemes;
   }
 
   // Load success stats from the database using the same logic as history page
@@ -277,13 +279,15 @@ class _ExercisePageState extends State<ExercisePage>
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         child: Column(
           children: [
-            if (controller.currentNumber1 != 0)
+            if (controller.currentNumber1 != 0 ||
+                controller.currentProblem != null)
               Text(
                 _getQuestionText(controller),
-                style: const TextStyle(fontSize: 24),
+                style: TextStyle(
+                    fontSize: controller.currentProblem != null ? 16 : 24),
                 textAlign: TextAlign.center,
               ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: controller.startExercise,
               style: ElevatedButton.styleFrom(
@@ -294,10 +298,10 @@ class _ExercisePageState extends State<ExercisePage>
                 backgroundColor: widget.subject.color,
               ),
               child: Text(
-                controller.currentNumber1 == 0
-                    ? 'Démarrer'
-                    : 'Nouvelle question',
-                style: const TextStyle(fontSize: 20, color: Colors.white),
+                controller.isFirstAttempt ? 'Démarrer' : 'Nouvelle question',
+                style: TextStyle(
+                    fontSize: controller.currentProblem != null ? 16 : 20,
+                    color: Colors.white),
               ),
             ),
           ],
@@ -322,6 +326,9 @@ class _ExercisePageState extends State<ExercisePage>
         break;
       case SubjectType.division:
         operationSymbol = "÷";
+        break;
+      case SubjectType.problemes:
+        return controller.currentProblem?.text ?? '';
         break;
     }
 
@@ -427,7 +434,8 @@ class _ExercisePageState extends State<ExercisePage>
   Widget _buildKeyboard() {
     return Consumer<ExerciseController>(
       builder: (context, controller, child) {
-        if (controller.isKeyboardMode && controller.currentNumber1 != 0) {
+        if (controller.isKeyboardMode && controller.currentNumber1 != 0 ||
+            controller.currentProblem != null) {
           return NumberKeyboard(
             currentInput: controller.currentInput,
             onKeyPressed: controller.handleKeyPress,

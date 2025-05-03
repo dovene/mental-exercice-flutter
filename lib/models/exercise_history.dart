@@ -7,7 +7,8 @@ class ExerciseHistory {
   final bool isCorrect;
   final String givenAnswer;
   final DateTime date;
-  final SubjectType subjectType; // Nouveau champ
+  final SubjectType subjectType;
+  final String? problemText;
 
   ExerciseHistory({
     required this.id,
@@ -16,7 +17,8 @@ class ExerciseHistory {
     required this.isCorrect,
     required this.givenAnswer,
     required this.date,
-    required this.subjectType, // Nouveau paramètre
+    required this.subjectType,
+    this.problemText, // Optional for non-problem exercises
   });
 
   Map<String, dynamic> toMap() {
@@ -27,7 +29,8 @@ class ExerciseHistory {
       'isCorrect': isCorrect ? 1 : 0,
       'givenAnswer': givenAnswer,
       'date': date.toIso8601String(),
-      'subjectType': subjectType.index, // Sauvegarder l'index de l'enum
+      'subjectType': subjectType.index,
+      'problemText': problemText, // Store problem text if present
     };
   }
 
@@ -41,11 +44,12 @@ class ExerciseHistory {
       date: DateTime.parse(map['date']),
       subjectType: map['subjectType'] != null
           ? SubjectType.values[map['subjectType']]
-          : SubjectType.tables, // Valeur par défaut pour la rétrocompatibilité
+          : SubjectType.tables, // Default value for backward compatibility
+      problemText: map['problemText'], // Load problem text if present
     );
   }
 
-  // Helper pour afficher l'opération
+  // Helper for displaying the operation
   String getOperationText() {
     switch (subjectType) {
       case SubjectType.tables:
@@ -57,10 +61,12 @@ class ExerciseHistory {
         return '$number1 - $number2';
       case SubjectType.division:
         return '$number1 ÷ $number2';
+      case SubjectType.problemes:
+        return problemText ?? "Problème";
     }
   }
 
-  // Helper pour calculer la réponse correcte
+  // Helper for calculating the correct answer
   int getCorrectAnswer() {
     switch (subjectType) {
       case SubjectType.tables:
@@ -71,7 +77,9 @@ class ExerciseHistory {
       case SubjectType.soustraction:
         return number1 - number2;
       case SubjectType.division:
-        return number1 ~/ number2; // Division entière
+        return number1 ~/ number2; // Integer division
+      case SubjectType.problemes:
+        return number1; // For problems, we store the answer in number1
     }
   }
 }
