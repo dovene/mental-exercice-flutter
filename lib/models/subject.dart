@@ -36,7 +36,7 @@ class Subject {
         description: "Apprendre les tables de multiplication",
         type: SubjectType.tables,
         icon: Icons.grid_on,
-        classLevels: ["CE2", "CM1", "CM2"],
+        classLevels: ["CE1", "CE2", "CM1", "CM2"],
         color: Colors.purple,
         shortName: "Tables",
       ),
@@ -53,7 +53,7 @@ class Subject {
         description: "Apprendre à soustraire",
         type: SubjectType.soustraction,
         icon: Icons.remove,
-        classLevels: ["CP", "CE1", "CE2", "CM1", "CM2"],
+        classLevels: ["CE1", "CE2", "CM1", "CM2"],
         color: Colors.red,
       ),
       Subject(
@@ -61,7 +61,7 @@ class Subject {
         description: "Apprendre à multiplier",
         type: SubjectType.multiplication,
         icon: Icons.close,
-        classLevels: ["CE2", "CM1", "CM2"],
+        classLevels: ["CE1", "CE2", "CM1", "CM2"],
         color: Colors.green,
       ),
       Subject(
@@ -69,7 +69,7 @@ class Subject {
         description: "Apprendre à diviser",
         type: SubjectType.division,
         icon: Icons.border_vertical,
-        classLevels: ["CE2", "CM1", "CM2"],
+        classLevels: ["CM1", "CM2"],
         color: Colors.orange,
       ),
       Subject(
@@ -77,7 +77,7 @@ class Subject {
         description: "Résoudre des problèmes arithmétiques",
         type: SubjectType.problemes,
         icon: Icons.help_outline,
-        classLevels: ["CE2", "CM1", "CM2"],
+        classLevels: ["CP", "CE1", "CE2", "CM1", "CM2"],
         color: Colors.teal,
       ),
     ];

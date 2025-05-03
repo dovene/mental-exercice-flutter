@@ -1,4 +1,3 @@
-// lib/services/problem_generator.dart
 import 'dart:math';
 
 import '../models/operations_settings.dart';

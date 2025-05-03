@@ -22,7 +22,6 @@ class _WelcomePageState extends State<WelcomePage>
 
   // Stats for subjects
   Map<SubjectType, Map<String, dynamic>> _subjectStats = {};
-  bool _isLoadingStats = true;
 
   @override
   void initState() {
@@ -36,9 +35,7 @@ class _WelcomePageState extends State<WelcomePage>
   }
 
   Future<void> _loadAllSubjectStats() async {
-    setState(() {
-      _isLoadingStats = true;
-    });
+    setState(() {});
     try {
       for (var subjectType in SubjectType.values) {
         final stats =
@@ -50,9 +47,7 @@ class _WelcomePageState extends State<WelcomePage>
     } catch (e) {
       debugPrint('Error loading stats: \$e');
     } finally {
-      setState(() {
-        _isLoadingStats = false;
-      });
+      setState(() {});
     }
   }
 
@@ -159,11 +154,11 @@ class _WelcomePageState extends State<WelcomePage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          /*const Text(
             'Choisis ta classe:',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 8),*/
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(

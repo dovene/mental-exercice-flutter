@@ -1,20 +1,6 @@
-import 'dart:async';
-
-import 'package:Tables/screens/history_page.dart';
-import 'package:Tables/screens/home_page.dart';
-import 'package:Tables/screens/settings_page.dart';
-import 'package:Tables/services/speech_service.dart';
-import 'package:Tables/widgets/countdown_timer.dart';
-import 'package:Tables/widgets/number_keyboard.dart';
-import 'package:Tables/widgets/score_display.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'models/exercise_history.dart';
 import 'screens/welcome_page.dart';
-import 'services/database_helper.dart';
-import 'services/audio_service.dart';
-
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

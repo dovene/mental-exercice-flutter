@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/exercise_history.dart';
 import '../services/database_helper.dart';
-
-import 'package:flutter/material.dart';
 import '../models/subject.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -88,9 +86,16 @@ class _HistoryPageState extends State<HistoryPage> {
       appBar: AppBar(
         title: const Text('Historique'),
         backgroundColor: subject.color,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.delete, color: Colors.white),
             onPressed: _history.isEmpty ? null : _clearHistory,
             tooltip: 'Effacer l\'historique',
           ),

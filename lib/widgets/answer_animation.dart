@@ -2,8 +2,6 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 // Updated animations and star rating
-import 'dart:math';
-import 'package:flutter/material.dart';
 
 class CorrectAnswerAnimation extends StatefulWidget {
   final Widget child;

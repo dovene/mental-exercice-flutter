@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -415,20 +417,6 @@ class _ExercisePageState extends State<ExercisePage>
         ? 'Génial, La bonne réponse était bien : ${controller.lastAnswer}'
         : 'Désolé, vous avez proposé ${controller.lastAnswer} '
             'mais la bonne réponse était $correctAnswer';
-  }
-
-  Widget _buildStreakDisplay(ExerciseController controller) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16.0),
-      child: Text(
-        'Série: ${controller.streak} 🔥',
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Colors.orange,
-        ),
-      ),
-    );
   }
 
   Widget _buildKeyboard() {
