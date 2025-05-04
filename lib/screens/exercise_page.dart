@@ -1,5 +1,6 @@
 // ignore_for_file: unused_field
 
+import 'package:HelloMath/widgets/magical_streak_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -34,6 +35,9 @@ class _ExercisePageState extends State<ExercisePage>
   int _successRate = 0;
   bool _isProblemSuject = false;
 
+  // Track if magical celebration is showing
+  bool _showMagicalCelebration = false;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +45,32 @@ class _ExercisePageState extends State<ExercisePage>
     _initializeScoreController();
     _loadSuccessStats();
     _isProblemSuject = widget.subject.type == SubjectType.problemes;
+
+    // Listen to streak changes
+    _controller.addListener(_checkForStreakMilestone);
+  }
+
+  void _checkForStreakMilestone() {
+    // Show magical celebration each time the streak reaches 2 repeatedly
+    // and the answer is correct
+    if (_controller.streak % 2 == 0 &&
+        _controller.streak > 0 &&
+        _controller.isCorrect == true) {
+
+      // Immediately show the magical celebration
+      setState(() {
+        _showMagicalCelebration = true;
+      });
+
+      // Reset magical celebration after animation completes (2 seconds)
+      Future.delayed(const Duration(milliseconds: 2000), () {
+        if (mounted) {
+          setState(() {
+            _showMagicalCelebration = false;
+          });
+        }
+      });
+    }
   }
 
   // Load success stats from the database using the same logic as history page
@@ -99,6 +129,11 @@ class _ExercisePageState extends State<ExercisePage>
               ),
             ),
           );
+
+          // Apply the magical celebration animation if streak is 10
+          if (_showMagicalCelebration) {
+            return MagicalStreakAnimation(child: content);
+          }
 
           // Apply the appropriate animation based on answer status
           if (controller.showAnswerAnimation) {
@@ -216,6 +251,19 @@ class _ExercisePageState extends State<ExercisePage>
               score: _successRate,
               color: widget.subject.color,
             ),
+            // Display current streak if greater than 1 with label stating how many many good answers before magical animation
+
+            /*if (controller.streak > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Encore ${2 - controller.streak} bonnes réponses pour la magie !',
+                  style: TextStyle(
+                    color: widget.subject.color,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),*/
           ],
         ),
       ),
