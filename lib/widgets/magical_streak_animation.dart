@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import '../helper/app_constants.dart';
+import 'magic_animation_particles.dart';
+
 class MagicalStreakAnimation extends StatefulWidget {
   final Widget child;
 
@@ -9,16 +12,19 @@ class MagicalStreakAnimation extends StatefulWidget {
       : super(key: key);
 
   @override
-  _MagicalStreakAnimationState createState() => _MagicalStreakAnimationState();
+  MagicalStreakAnimationState createState() => MagicalStreakAnimationState();
 }
 
-class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
+class MagicalStreakAnimationState extends State<MagicalStreakAnimation>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late List<MagicParticle> _particles;
   late List<MagicWand> _magicWands;
   late List<FloatingText> _floatingTexts;
   final Random _random = Random();
+
+  // Store the 5 randomly selected particle shapes for this animation
+  late List<ParticleShape> _selectedShapes;
 
   // Randomized theme elements
   late Color _primaryColor;
@@ -35,18 +41,23 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
     // Animation lasts exactly 2 seconds
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2000),
+      duration:
+          const Duration(milliseconds: AppConstants.magicAnimationDuration),
     )..forward();
 
     // Randomize theme elements
     _randomizeTheme();
 
-    // Generate magical particles
+    // Select 5 random shapes from the ParticleShape enum for this animation instance
+    _selectedShapes = _selectRandomShapes();
+
+    // Generate magical particles immediately with no delay
     _particles =
-        List.generate(200, (_) => _createMagicParticle());
+        List.generate(_random.nextInt(200) + 50, (_) => _createMagicParticle());
 
     // Generate magic wands
-    _magicWands = List.generate(3, (_) => _createMagicWand());
+    _magicWands =
+        List.generate(_random.nextInt(3) + 1, (_) => _createMagicWand());
 
     // Create floating celebration texts
     _floatingTexts = [
@@ -54,6 +65,16 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
       _createFloatingText("Génial!", 0),
       _createFloatingText("Brilliant!", 100),
     ];
+  }
+
+  // Method to randomly select 5 unique particle shapes
+  List<ParticleShape> _selectRandomShapes() {
+    // Get all available shape options
+    final List<ParticleShape> allShapes = ParticleShape.values.toList();
+    // Shuffle to randomize
+    allShapes.shuffle(_random);
+    // Return the first 5 items
+    return allShapes.take(5).toList();
   }
 
   void _randomizeTheme() {
@@ -65,6 +86,9 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
       [Colors.indigo[300]!, Colors.deepPurple[200]!, Colors.pink[300]!],
       [Colors.green[300]!, Colors.lightGreen[200]!, Colors.amber[300]!],
       [Colors.pink[300]!, Colors.purple[200]!, Colors.blue[300]!],
+      // Nature-themed color schemes for animals and birds
+      [Colors.green[400]!, Colors.brown[300]!, Colors.lightBlue[300]!],
+      [Colors.teal[300]!, Colors.lime[200]!, Colors.orange[300]!],
     ];
 
     final selectedScheme = colorSchemes[_random.nextInt(colorSchemes.length)];
@@ -83,17 +107,28 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
     final double distance = _random.nextDouble() * 300 + 50;
     final double speed = _random.nextDouble() * 0.8 + 0.3;
     final double size = _random.nextDouble() * 12 + 3;
-    final double delay = _random.nextDouble() * 0.3; // Staggered appearance
 
-    // Randomly select particle shape
+    // No delay for instant appearance
+    final double delay = 0.0;
+
+    // Randomly select one of the 5 pre-selected shapes for this animation
     final ParticleShape shape =
-        ParticleShape.values[_random.nextInt(ParticleShape.values.length)];
+        _selectedShapes[_random.nextInt(_selectedShapes.length)];
+
+    // Calculate the appropriate size for animals and birds (larger than regular particles)
+    double adjustedSize = size;
+    if (shape == ParticleShape.bird ||
+        shape == ParticleShape.butterfly ||
+        shape == ParticleShape.fish ||
+        shape == ParticleShape.rabbit) {
+      adjustedSize = size * 2.5; // Make animals and birds larger
+    }
 
     return MagicParticle(
       angle: angle,
       distance: distance,
       speed: speed,
-      size: size,
+      size: adjustedSize,
       color: _getMagicalColor(),
       twinkleSpeed: _random.nextDouble() * 0.15 + 0.05,
       shape: shape,
@@ -147,10 +182,13 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
       Colors.cyan[200]!,
       Colors.lightGreen[300]!,
       Colors.deepOrange[200]!,
-      Colors.grey[700]!,
-      Colors.red[900]!,
-      Colors.blue[900]!,
-      Colors.green[900]!,
+      // More natural colors for animals and birds
+      Colors.brown[300]!,
+      Colors.orange[300]!,
+      Colors.lightBlue[300]!,
+      Colors.green[400]!,
+      Colors.redAccent[200]!,
+      //Colors.grey[700]!,
       Colors.white,
     ];
 
@@ -208,27 +246,21 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
                   ),
                 ),
 
-                // Magic particles
+                // Magic particles - IMMEDIATE VISIBILITY
                 ..._particles.map((particle) {
-                  // Apply delay to particle appearance
-                  double particleProgress = max(
-                      0,
-                      min(1,
-                          (progress - particle.delay) / (1 - particle.delay)));
-
-                  if (particleProgress <= 0) return const SizedBox.shrink();
+                  double particleProgress = progress;
 
                   // Fade effect
                   double opacity;
-                  if (particleProgress < 0.2) {
-                    opacity = particleProgress * 5; // Quick fade in
+                  if (particleProgress < 0.1) {
+                    opacity = particleProgress * 10; // Very quick fade in
                   } else if (particleProgress > 0.8) {
                     opacity = (1 - particleProgress) * 5; // Fade out
                   } else {
                     opacity = 1.0;
                   }
 
-                  // Movement calculation with different patterns based on randomization
+                  // Movement calculation with different patterns
                   double distance;
                   double angle = particle.angle;
 
@@ -247,8 +279,13 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
                     distance = particle.distance * particleProgress;
                   }
 
-                  final x = cos(angle) * distance;
-                  final y = sin(angle) * distance;
+                  // Add flutter movement for birds and butterflies
+                  double xOffset = 0;
+                  double yOffset = 0;
+                  double rotation = 0;
+
+                  final x = cos(angle) * distance + xOffset;
+                  final y = sin(angle) * distance + yOffset;
 
                   // Twinkle effect with randomized speed
                   final twinkle =
@@ -264,7 +301,10 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
                     top: centerY + y - (scale / 2),
                     child: Opacity(
                       opacity: opacity * twinkle,
-                      child: _buildParticleShape(particle, scale),
+                      child: Transform.rotate(
+                        angle: rotation,
+                        child: _buildParticleShape(particle, scale),
+                      ),
                     ),
                   );
                 }).toList(),
@@ -298,11 +338,8 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
 
                 // Floating celebration texts
                 ..._floatingTexts.map((text) {
-                  // Text appears in sequence
-                  final textProgress =
-                      max(0, min(1, progress * 3 - text.xOffset.abs() / 100));
-
-                  if (textProgress <= 0) return const SizedBox.shrink();
+                  // Text appears in sequence - IMMEDIATE VISIBILITY
+                  final textProgress = progress;
 
                   // Movement calculation
                   final textY = text.yOffset + (textProgress * 50);
@@ -342,7 +379,7 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
                   );
                 }).toList(),
 
-                /* Center sparkle effect
+                // Center sparkle effect
                 Positioned(
                   left: centerX - 40,
                   top: centerY - 40,
@@ -367,7 +404,7 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
                       ),
                     ),
                   ),
-                ),*/
+                ),
 
                 // Scale animation for main content
                 Positioned.fill(
@@ -430,6 +467,41 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
           painter: SparklePainter(
             color: particle.color,
             rotation: particle.angle,
+          ),
+        );
+
+      case ParticleShape.bird:
+        return CustomPaint(
+          size: Size(size, size),
+          painter: BirdPainter(
+            color: particle.color,
+            wingPosition: particle.angle,
+          ),
+        );
+
+      case ParticleShape.butterfly:
+        return CustomPaint(
+          size: Size(size, size),
+          painter: ButterflyPainter(
+            color: particle.color,
+            wingPosition: particle.angle,
+          ),
+        );
+
+      case ParticleShape.fish:
+        return CustomPaint(
+          size: Size(size, size),
+          painter: FishPainter(
+            color: particle.color,
+            tailPosition: 1,
+          ),
+        );
+
+      case ParticleShape.rabbit:
+        return CustomPaint(
+          size: Size(size, size),
+          painter: RabbitPainter(
+            color: particle.color,
           ),
         );
     }
@@ -508,233 +580,4 @@ class _MagicalStreakAnimationState extends State<MagicalStreakAnimation>
       ),
     );
   }
-}
-
-// Enhanced particle class for magical animation
-class MagicParticle {
-  final double angle;
-  final double distance;
-  final double speed;
-  final double size;
-  final Color color;
-  final double twinkleSpeed;
-  final ParticleShape shape;
-  final double delay;
-  final bool useSpiral;
-
-  MagicParticle({
-    required this.angle,
-    required this.distance,
-    required this.speed,
-    required this.size,
-    required this.color,
-    required this.twinkleSpeed,
-    required this.shape,
-    required this.delay,
-    required this.useSpiral,
-  });
-}
-
-// Magic wand class
-class MagicWand {
-  final double angle;
-  final double distance;
-  final double rotationSpeed;
-  final Color color;
-  final Color secondaryColor;
-  final double wandLength;
-
-  MagicWand({
-    required this.angle,
-    required this.distance,
-    required this.rotationSpeed,
-    required this.color,
-    required this.secondaryColor,
-    required this.wandLength,
-  });
-}
-
-// Floating celebration text
-class FloatingText {
-  final String text;
-  final double xOffset;
-  final double yOffset;
-  final double scale;
-  final double rotationAngle;
-  final Color color;
-
-  FloatingText({
-    required this.text,
-    required this.xOffset,
-    required this.yOffset,
-    required this.scale,
-    required this.rotationAngle,
-    required this.color,
-  });
-}
-
-// Particle shape enum
-enum ParticleShape {
-  circle,
-  star,
-  heart,
-  sparkle,
-}
-
-// Star shape painter
-class StarPainter extends CustomPainter {
-  final Color color;
-  final int points;
-
-  StarPainter({
-    required this.color,
-    this.points = 5,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 1.0;
-
-    final double centerX = size.width / 2;
-    final double centerY = size.height / 2;
-    final double radius = size.width / 2;
-    final double innerRadius = radius * 0.4;
-
-    final Path path = Path();
-
-    for (int i = 0; i < points * 2; i++) {
-      final double angle = i * pi / points;
-      final double currentRadius = i.isEven ? radius : innerRadius;
-      final double x = centerX + cos(angle) * currentRadius;
-      final double y = centerY + sin(angle) * currentRadius;
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-
-    path.close();
-
-    // Add glow effect
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = color.withOpacity(0.5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0));
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// Heart shape painter
-class HeartPainter extends CustomPainter {
-  final Color color;
-
-  HeartPainter({
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final double width = size.width;
-    final double height = size.height;
-
-    final Path path = Path();
-    path.moveTo(0.5 * width, height * 0.35);
-    path.cubicTo(0.2 * width, height * 0.1, -0.25 * width, height * 0.6,
-        0.5 * width, height);
-    path.cubicTo(1.25 * width, height * 0.6, 0.8 * width, height * 0.1,
-        0.5 * width, height * 0.35);
-    path.close();
-
-    // Add glow effect
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = color.withOpacity(0.5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0));
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// Sparkle shape painter
-class SparklePainter extends CustomPainter {
-  final Color color;
-  final double rotation;
-
-  SparklePainter({
-    required this.color,
-    required this.rotation,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final double centerX = size.width / 2;
-    final double centerY = size.height / 2;
-    final double radius = size.width / 2;
-
-    canvas.translate(centerX, centerY);
-    canvas.rotate(rotation);
-
-    // Draw main sparkle lines
-    for (int i = 0; i < 4; i++) {
-      final path = Path();
-      path.moveTo(0, 0);
-      path.lineTo(0, -radius);
-
-      canvas.drawPath(
-          path,
-          paint
-            ..strokeWidth = 2.0
-            ..style = PaintingStyle.stroke);
-      canvas.rotate(pi / 2);
-    }
-
-    // Draw smaller diagonal lines
-    canvas.rotate(pi / 4);
-    for (int i = 0; i < 4; i++) {
-      final path = Path();
-      path.moveTo(0, 0);
-      path.lineTo(0, -radius * 0.7);
-
-      canvas.drawPath(path, paint..strokeWidth = 1.0);
-      canvas.rotate(pi / 2);
-    }
-
-    // Draw center dot
-    canvas.drawCircle(
-        const Offset(0, 0), radius * 0.15, paint..style = PaintingStyle.fill);
-
-    // Add glow effect
-    canvas.drawCircle(
-        const Offset(0, 0),
-        radius * 0.2,
-        Paint()
-          ..color = color.withOpacity(0.5)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0));
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

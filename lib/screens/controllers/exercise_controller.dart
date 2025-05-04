@@ -284,31 +284,6 @@ class ExerciseController with ChangeNotifier {
     }
   }
 
-  /*void _startCountdown() {
-    _exerciseRemainingTime = _settings.waitingTime;
-
-    _exerciseTimer?.cancel();
-    _exerciseTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _exerciseRemainingTime--;
-
-      if (_exerciseRemainingTime <= 0) {
-        timer.cancel();
-
-        // When countdown completes, start the exercise timer
-        if (_isTimerEnabled) {
-          _startExerciseTimer();
-        }
-
-        if (!_isKeyboardMode) {
-          // Lancer la reconnaissance vocale en mode voix
-          _startListening();
-        }
-      }
-
-      notifyListeners();
-    });
-  }*/
-
   // Start the exercise timer
   void _startExerciseTimer() {
     // Cancel any existing timer

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/exercise_history.dart';
 import '../services/database_helper.dart';
 import '../models/subject.dart';
+import 'package:intl/intl.dart';
 
 class HistoryPage extends StatefulWidget {
   final SubjectType subjectType;
@@ -202,7 +203,7 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Widget _buildHistoryItem(ExerciseHistory item) {
-    // final dateFormat = DateFormat('dd/MM HH:mm');
+    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     final subject = Subject.getSubjectByType(widget.subjectType);
     final givenAnswerString =
         'Réponse: ${item.givenAnswer.isEmpty ? 'Aucune réponse' : item.givenAnswer}';
@@ -241,6 +242,14 @@ class _HistoryPageState extends State<HistoryPage> {
                     fontSize: 14,
                     color: Colors.green,
                     fontWeight: FontWeight.bold),
+              ),
+              TextSpan(
+                text: '\n${dateFormat.format(item.date)}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  //fontStyle: FontStyle.italic,
+                  color: Color.fromARGB(255, 105, 80, 80),
+                ),
               ),
             ],
           ),

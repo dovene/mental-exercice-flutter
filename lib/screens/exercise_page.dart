@@ -4,6 +4,7 @@ import 'package:HelloMath/widgets/magical_streak_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../helper/app_constants.dart';
 import '../models/subject.dart';
 import '../services/database_helper.dart';
 import '../widgets/achievement_indicator.dart';
@@ -53,17 +54,18 @@ class _ExercisePageState extends State<ExercisePage>
   void _checkForStreakMilestone() {
     // Show magical celebration each time the streak reaches 2 repeatedly
     // and the answer is correct
-    if (_controller.streak % 2 == 0 &&
+    if (_controller.streak % AppConstants.magicAnimationStreak == 0 &&
         _controller.streak > 0 &&
         _controller.isCorrect == true) {
-
       // Immediately show the magical celebration
       setState(() {
         _showMagicalCelebration = true;
       });
 
-      // Reset magical celebration after animation completes (2 seconds)
-      Future.delayed(const Duration(milliseconds: 2000), () {
+      // Reset magical celebration after animation completes
+      Future.delayed(
+          const Duration(milliseconds: AppConstants.magicAnimationDuration),
+          () {
         if (mounted) {
           setState(() {
             _showMagicalCelebration = false;
