@@ -2,8 +2,8 @@ import 'subject.dart';
 
 class ExerciseHistory {
   final int id;
-  final int number1;
-  final int number2;
+  final double number1; // Changed from int to double
+  final double number2; // Changed from int to double
   final bool isCorrect;
   final String givenAnswer;
   final DateTime date;
@@ -37,8 +37,10 @@ class ExerciseHistory {
   static ExerciseHistory fromMap(Map<String, dynamic> map) {
     return ExerciseHistory(
       id: map['id'],
-      number1: map['number1'],
-      number2: map['number2'],
+      number1:
+          map['number1'] is int ? map['number1'].toDouble() : map['number1'],
+      number2:
+          map['number2'] is int ? map['number2'].toDouble() : map['number2'],
       isCorrect: map['isCorrect'] == 1,
       givenAnswer: map['givenAnswer'],
       date: DateTime.parse(map['date']),
@@ -51,23 +53,32 @@ class ExerciseHistory {
 
   // Helper for displaying the operation
   String getOperationText() {
+    // Format numbers to avoid showing unnecessary decimal places
+    String formatNumber(double num) {
+      if (num == num.truncate()) {
+        return num.toInt().toString();
+      } else {
+        return num.toString();
+      }
+    }
+
     switch (subjectType) {
       case SubjectType.tables:
       case SubjectType.multiplication:
-        return '$number1 × $number2';
+        return '${formatNumber(number1)} × ${formatNumber(number2)}';
       case SubjectType.addition:
-        return '$number1 + $number2';
+        return '${formatNumber(number1)} + ${formatNumber(number2)}';
       case SubjectType.soustraction:
-        return '$number1 - $number2';
+        return '${formatNumber(number1)} - ${formatNumber(number2)}';
       case SubjectType.division:
-        return '$number1 ÷ $number2';
+        return '${formatNumber(number1)} ÷ ${formatNumber(number2)}';
       case SubjectType.problemes:
         return problemText ?? "Problème";
     }
   }
 
   // Helper for calculating the correct answer
-  int getCorrectAnswer() {
+  double getCorrectAnswer() {
     switch (subjectType) {
       case SubjectType.tables:
       case SubjectType.multiplication:
@@ -77,7 +88,7 @@ class ExerciseHistory {
       case SubjectType.soustraction:
         return number1 - number2;
       case SubjectType.division:
-        return number1 ~/ number2; // Integer division
+        return number1 / number2; // Changed to floating-point division
       case SubjectType.problemes:
         return number1; // For problems, we store the answer in number1
     }

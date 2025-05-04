@@ -24,8 +24,8 @@ class ExerciseController with ChangeNotifier {
 
   String _lastAnswer = '';
   bool? _isCorrect;
-  int _currentNumber1 = 0;
-  int _currentNumber2 = 0;
+  double _currentNumber1 = 0;
+  double _currentNumber2 = 0;
   bool _isKeyboardMode = true;
   String _currentInput = '';
   bool _isFirstAttempt = true; // Flag to track if it's the first attempt
@@ -37,8 +37,8 @@ class ExerciseController with ChangeNotifier {
   int _score = 0;
   int _streak = 0;
 
-  int? _previousNumber1;
-  int? _previousNumber2;
+  double? _previousNumber1;
+  double? _previousNumber2;
   Random _random = Random();
 
   // Animation control
@@ -48,8 +48,8 @@ class ExerciseController with ChangeNotifier {
   bool get isListening => _isListening;
   String get lastAnswer => _lastAnswer;
   bool? get isCorrect => _isCorrect;
-  int get currentNumber1 => _currentNumber1;
-  int get currentNumber2 => _currentNumber2;
+  double get currentNumber1 => _currentNumber1;
+  double get currentNumber2 => _currentNumber2;
   bool get isKeyboardMode => _isKeyboardMode;
   String get currentInput => _currentInput;
   bool get isFirstAttempt => _isFirstAttempt;
@@ -196,7 +196,7 @@ class ExerciseController with ChangeNotifier {
   }
 
   void _generateNewQuestion() {
-    int num1, num2;
+    double num1, num2;
 
     // S'assurer que la nouvelle question est différente de la précédente
     do {
@@ -217,12 +217,12 @@ class ExerciseController with ChangeNotifier {
     notifyListeners();
   }
 
-  int _generateFirstNumber() {
+  double _generateFirstNumber() {
     // Si un nombre spécifique est sélectionné (pour les tables), l'utiliser
     if (_settings.selectedNumber > 0 &&
         (subjectType == SubjectType.tables ||
             subjectType == SubjectType.multiplication)) {
-      return _settings.selectedNumber;
+      return _settings.selectedNumber.toDouble();
     }
 
     // Sinon, générer un nombre selon les paramètres
@@ -239,10 +239,19 @@ class ExerciseController with ChangeNotifier {
       maxNum = 9999; // Mode difficile avec des nombres plus grands
     }
 
-    return _random.nextInt(maxNum) + 1; // Entre 1 et maxNum
+    // Generate integer or decimal number based on settings
+    if (_settings.decimalMode) {
+      // Generate decimal number with 1 or 2 decimal places
+      double baseNumber = _random.nextInt(maxNum) + 1;
+      double decimal = (_random.nextInt(100) / 100); // 0.00 to 0.99
+      return double.parse((baseNumber + decimal)
+          .toStringAsFixed(2)); // Round to 2 decimal places
+    } else {
+      return _random.nextInt(maxNum) + 1.0; // Entre 1 et maxNum as double
+    }
   }
 
-  int _generateSecondNumber(int firstNumber) {
+  double _generateSecondNumber(double firstNumber) {
     int maxNum = 10;
     int minNum = 1;
 
@@ -254,33 +263,108 @@ class ExerciseController with ChangeNotifier {
       } else if (subjectType == SubjectType.multiplication) {
         maxNum = 9999; // Multiplications à plusieurs chiffres
       } else if (subjectType == SubjectType.division) {
-        maxNum = 48; // Divisions limitées pour obtenir des résultats entiers
+        maxNum =
+            48; // Divisions limitées pour obtenir des résultats raisonnables
       }
     } else if (_settings.isHardMode) {
       maxNum = 9999; // Mode difficile
     }
 
-    // Pour les soustractions et divisions, s'assurer que le résultat est positif et entier
-    if (subjectType == SubjectType.soustraction) {
-      int num2 = _random.nextInt(firstNumber) + 1; // Entre 1 et firstNumber
-      return num2;
-    } else if (subjectType == SubjectType.division) {
-      // Créer une liste de diviseurs possibles
-      List<int> divisors = [];
-      for (int i = 1; i <= min(firstNumber, maxNum); i++) {
-        if (firstNumber % i == 0) {
-          divisors.add(i);
+    // For integer operations
+    if (!_settings.decimalMode) {
+      // Pour les soustractions et divisions, s'assurer que le résultat est positif et entier
+      if (subjectType == SubjectType.soustraction) {
+        int num2 =
+            _random.nextInt(firstNumber.toInt()) + 1; // Entre 1 et firstNumber
+        return num2.toDouble();
+      } else if (subjectType == SubjectType.division) {
+        // Créer une liste de diviseurs possibles
+        List<int> divisors = [];
+        int intFirst = firstNumber.toInt();
+        for (int i = 1; i <= min(intFirst, maxNum); i++) {
+          if (intFirst % i == 0) {
+            divisors.add(i);
+          }
+        }
+
+        if (divisors.isEmpty) {
+          return 1.0; // Fallback
+        }
+
+        return divisors[_random.nextInt(divisors.length)].toDouble();
+      } else {
+        return (_random.nextInt(maxNum - minNum + 1) + minNum)
+            .toDouble(); // Entre minNum et maxNum
+      }
+    }
+    // For decimal operations
+    else {
+      if (subjectType == SubjectType.soustraction) {
+        // Ensure result is positive by making second number smaller than first
+        double maxValue =
+            firstNumber * 0.9; // Ensure we don't get too close to zero
+        return double.parse(
+            (_random.nextDouble() * maxValue).toStringAsFixed(2));
+      } else if (subjectType == SubjectType.division) {
+        // For division, use simpler divisors to get clean results
+        List<double> decimalDivisors = [0.5, 1.0, 2.0, 2.5, 4.0, 5.0, 10.0];
+        return decimalDivisors[_random.nextInt(decimalDivisors.length)];
+      } else {
+        // For addition and multiplication
+        double baseNumber = _random.nextInt(maxNum) + 1;
+        double decimal = (_random.nextInt(100) / 100); // 0.00 to 0.99
+        return double.parse((baseNumber + decimal)
+            .toStringAsFixed(2)); // Round to 2 decimal places
+      }
+    }
+  }
+
+  // static method to format a double to a string with 2 decimal places if there are decimals without trailing zeros
+  static String formatDouble(double value) {
+    if (value == value.toInt()) {
+      return value.toInt().toString();
+    } else {
+      return value.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
+    }
+  }
+
+  /*void _startCountdown() {
+    _exerciseRemainingTime = _settings.waitingTime;
+
+    _exerciseTimer?.cancel();
+    _exerciseTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _exerciseRemainingTime--;
+
+      if (_exerciseRemainingTime <= 0) {
+        timer.cancel();
+
+        // When countdown completes, start the exercise timer
+        if (_isTimerEnabled) {
+          _startExerciseTimer();
+        }
+
+        if (!_isKeyboardMode) {
+          // Lancer la reconnaissance vocale en mode voix
+          _startListening();
         }
       }
 
-      if (divisors.isEmpty) {
-        return 1; // Fallback
-      }
+      notifyListeners();
+    });
+  }*/
 
-      return divisors[_random.nextInt(divisors.length)];
-    } else {
-      return _random.nextInt(maxNum - minNum + 1) +
-          minNum; // Entre minNum et maxNum
+  void handleKeyPress(String key) {
+    // Allow decimal point only if decimalMode is enabled
+    if (key == '.' && _settings.decimalMode) {
+      // Only add decimal point if it doesn't already exist
+      if (!_currentInput.contains('.') && _currentInput.length < 4) {
+        _currentInput += key;
+        notifyListeners();
+      }
+    } else if (_currentInput.length < 5) {
+      // Limiter à 5 caractères maximum (including decimal point)
+      _currentInput += key;
+      notifyListeners();
     }
   }
 
@@ -346,14 +430,6 @@ class ExerciseController with ChangeNotifier {
     notifyListeners();
   }
 
-  void handleKeyPress(String key) {
-    if (_currentInput.length < 5) {
-      // Limiter à 5 chiffres maximum
-      _currentInput += key;
-      notifyListeners();
-    }
-  }
-
   void handleDelete() {
     if (_currentInput.isNotEmpty) {
       _currentInput = _currentInput.substring(0, _currentInput.length - 1);
@@ -377,10 +453,15 @@ class ExerciseController with ChangeNotifier {
       _streak = 0; // Réinitialiser la série
     } else {
       try {
-        final int userAnswer = int.parse(_lastAnswer);
-        final int correctAnswer = getCorrectAnswer();
+        final double userAnswer = double.parse(_lastAnswer);
+        final double correctAnswer = getCorrectAnswer();
 
-        _isCorrect = userAnswer == correctAnswer;
+        // For decimal mode, allow small rounding differences
+        if (_settings.decimalMode) {
+          _isCorrect = (userAnswer - correctAnswer).abs() < 0.01;
+        } else {
+          _isCorrect = userAnswer == correctAnswer;
+        }
 
         if (_isCorrect!) {
           _streak++;
@@ -414,7 +495,7 @@ class ExerciseController with ChangeNotifier {
     notifyListeners();
   }
 
-  int getCorrectAnswer() {
+  double getCorrectAnswer() {
     switch (subjectType) {
       case SubjectType.tables:
       case SubjectType.multiplication:
@@ -424,9 +505,22 @@ class ExerciseController with ChangeNotifier {
       case SubjectType.soustraction:
         return _currentNumber1 - _currentNumber2;
       case SubjectType.division:
-        return _currentNumber1 ~/ _currentNumber2; // Division entière
+        return _currentNumber1 /
+            _currentNumber2; // Changed to floating-point division
       case SubjectType.problemes:
         return _currentProblem?.answer ?? 0; // Utiliser la réponse du problème
+    }
+  }
+
+  // Format the answer for display based on decimal mode
+  String getFormattedAnswer() {
+    double answer = getCorrectAnswer();
+    if (_settings.decimalMode) {
+      // Show up to 2 decimal places for decimal mode
+      return answer.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
+    } else {
+      // For integer mode, always display as integer
+      return answer.toInt().toString();
     }
   }
 

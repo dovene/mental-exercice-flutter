@@ -6,6 +6,7 @@ class NumberKeyboard extends StatelessWidget {
   final Function() onSubmit;
   final Function() onDelete;
   final String currentInput;
+  final bool decimalMode; // Added parameter for decimal mode
 
   const NumberKeyboard({
     super.key,
@@ -13,6 +14,7 @@ class NumberKeyboard extends StatelessWidget {
     required this.onSubmit,
     required this.onDelete,
     required this.currentInput,
+    required this.decimalMode, // Required parameter
   });
 
   @override
@@ -72,6 +74,19 @@ class NumberKeyboard extends StatelessWidget {
                 ),
               ),
             ),
+            // Decimal point button only visible in decimal mode
+            if (decimalMode)
+              SizedBox(
+                width: 60,
+                height: 60,
+                child: ElevatedButton(
+                  onPressed: () => onKeyPressed('.'),
+                  child: const Text(
+                    '.',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
           ],
         ),
         const SizedBox(height: 16),

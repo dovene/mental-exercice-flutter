@@ -384,7 +384,7 @@ class _ExercisePageState extends State<ExercisePage>
         break;
     }
 
-    return 'Combien font ${controller.currentNumber1} $operationSymbol ${controller.currentNumber2} ?';
+    return 'Combien font ${ExerciseController.formatDouble(controller.currentNumber1)} $operationSymbol ${ExerciseController.formatDouble(controller.currentNumber2)} ?';
   }
 
   Widget _buildFeedbackSection() {
@@ -475,6 +475,7 @@ class _ExercisePageState extends State<ExercisePage>
             currentInput: controller.currentInput,
             onKeyPressed: controller.handleKeyPress,
             onDelete: controller.handleDelete,
+            decimalMode: controller.settings.decimalMode,
             onSubmit: () {
               controller.triggerAnswerCheck();
             },
