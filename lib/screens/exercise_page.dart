@@ -390,16 +390,13 @@ class _ExercisePageState extends State<ExercisePage>
             size: 60,
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         Text(
           _getFeedbackText(controller),
+          textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 18,
-            color: controller.lastAnswer.isEmpty
-                ? Colors.orange
-                : controller.isCorrect!
-                    ? Colors.green
-                    : Colors.red,
+            fontSize: 16,
+            color: controller.isCorrect! ? Colors.green : Colors.red,
           ),
         ),
       ],
