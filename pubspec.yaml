@@ -47,6 +47,14 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # The following adds the ability to use the flutter_native_splash package
+  # to create a native splash screen for your app. The package is
+  # automatically included in the build process when you run `flutter pub get`.
+  # You can customize the splash screen by modifying the `flutter_native_splash`
+  # section in this file. For more information, see the package documentation:
+  # https://pub.dev/packages/flutter_native_splash
+  # https://pub.dev/packages/flutter_native_splash/example
+  flutter_native_splash: ^2.2.7
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -98,3 +106,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/splash.png
+  android: true
+  ios: false
