@@ -1,3 +1,12 @@
+enum SettingName {
+  selectedNumber,
+  waitingTime,
+  isHardMode,
+  simpleMode,
+  multiDigitMode,
+  decimalMode,
+}
+
 class OperationSettings {
   int selectedNumber;
   int waitingTime;
@@ -37,24 +46,24 @@ class OperationSettings {
   // Pour sauvegarder dans SharedPreferences
   Map<String, dynamic> toMap() {
     return {
-      'selectedNumber': selectedNumber,
-      'waitingTime': waitingTime,
-      'isHardMode': isHardMode,
-      'simpleMode': simpleMode,
-      'multiDigitMode': multiDigitMode,
-      'decimalMode': decimalMode,
+      SettingName.selectedNumber.name: selectedNumber,
+      SettingName.waitingTime.name: waitingTime,
+      SettingName.isHardMode.name: isHardMode,
+      SettingName.simpleMode.name: simpleMode,
+      SettingName.multiDigitMode.name: multiDigitMode,
+      SettingName.decimalMode.name: decimalMode,
     };
   }
 
   // Pour charger depuis SharedPreferences
   static OperationSettings fromMap(Map<String, dynamic> map) {
     return OperationSettings(
-      selectedNumber: map['selectedNumber'] ?? 0,
-      waitingTime: map['waitingTime'] ?? 5,
-      isHardMode: map['isHardMode'] ?? false,
-      simpleMode: map['simpleMode'] ?? true,
-      multiDigitMode: map['multiDigitMode'] ?? false,
-      decimalMode: map['decimalMode'] ?? false,
+      selectedNumber: map[SettingName.selectedNumber.name] ?? 0,
+      waitingTime: map[SettingName.waitingTime.name] ?? 5,
+      isHardMode: map[SettingName.isHardMode.name] ?? false,
+      simpleMode: map[SettingName.simpleMode.name] ?? true,
+      multiDigitMode: map[SettingName.multiDigitMode.name] ?? false,
+      decimalMode: map[SettingName.decimalMode.name] ?? false,
     );
   }
 }
