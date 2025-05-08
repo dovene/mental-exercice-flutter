@@ -1,3 +1,6 @@
+import 'package:HelloMath/screens/controllers/exercise_controller.dart';
+
+import '../helper/app_constants.dart';
 import 'subject.dart';
 
 class ExerciseHistory {
@@ -56,9 +59,9 @@ class ExerciseHistory {
     // Format numbers to avoid showing unnecessary decimal places
     String formatNumber(double num) {
       if (num == num.truncate()) {
-        return num.toInt().toString();
+        return ExerciseController.formatNumberForDisplay(num.toInt().toString(), AppConstants.useFrenchLocale);
       } else {
-        return num.toString();
+        return ExerciseController.formatNumberForDisplay(num.toString(), AppConstants.useFrenchLocale);
       }
     }
 

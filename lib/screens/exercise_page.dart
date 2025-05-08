@@ -384,7 +384,7 @@ class _ExercisePageState extends State<ExercisePage>
         break;
     }
 
-    return 'Combien font ${ExerciseController.formatDouble(controller.currentNumber1)} $operationSymbol ${ExerciseController.formatDouble(controller.currentNumber2)} ?';
+    return 'Combien font ${ExerciseController.formatDouble(controller.currentNumber1, controller.useFrenchLocale)} $operationSymbol ${ExerciseController.formatDouble(controller.currentNumber2, controller.useFrenchLocale)} ?';
   }
 
   Widget _buildFeedbackSection() {
@@ -455,15 +455,23 @@ class _ExercisePageState extends State<ExercisePage>
 
   String _getFeedbackText(ExerciseController controller) {
     final correctAnswer = controller.getCorrectAnswer();
+    final formattedCorrectAnswer = ExerciseController.formatDouble(correctAnswer, controller.useFrenchLocale);
 
     if (controller.lastAnswer.isEmpty) {
-      return 'Désolé, la bonne réponse était $correctAnswer !';
+      return 'Désolé, la bonne réponse était $formattedCorrectAnswer !';
+    }
+
+    // For display, we need to format the user's answer based on locale
+    String displayAnswer = controller.lastAnswer;
+    if (controller.useFrenchLocale) {
+      // If we're displaying in French locale but storing with dot internally
+      displayAnswer = displayAnswer.replaceAll('.', ',');
     }
 
     return controller.isCorrect!
-        ? 'Génial, La bonne réponse était bien : ${controller.lastAnswer}'
-        : 'Désolé, vous avez proposé ${controller.lastAnswer} '
-            'mais la bonne réponse était $correctAnswer';
+        ? 'Génial, La bonne réponse était bien : $displayAnswer'
+        : 'Désolé, vous avez proposé $displayAnswer '
+        'mais la bonne réponse était $formattedCorrectAnswer';
   }
 
   Widget _buildKeyboard() {
@@ -476,6 +484,7 @@ class _ExercisePageState extends State<ExercisePage>
             onKeyPressed: controller.handleKeyPress,
             onDelete: controller.handleDelete,
             decimalMode: controller.settings.decimalMode,
+            useFrenchLocale: controller.useFrenchLocale,
             onSubmit: () {
               controller.triggerAnswerCheck();
             },

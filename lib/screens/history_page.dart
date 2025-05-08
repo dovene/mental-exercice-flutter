@@ -1,5 +1,7 @@
+import 'package:HelloMath/screens/controllers/exercise_controller.dart';
 import 'package:flutter/material.dart';
 
+import '../helper/app_constants.dart';
 import '../models/exercise_history.dart';
 import '../services/database_helper.dart';
 import '../models/subject.dart';
@@ -205,9 +207,11 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildHistoryItem(ExerciseHistory item) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
     final subject = Subject.getSubjectByType(widget.subjectType);
+
     final givenAnswerString =
-        'Réponse: ${item.givenAnswer.isEmpty ? 'Aucune réponse' : item.givenAnswer}';
-    final correctAnswerString = 'Bonne réponse: ${item.getCorrectAnswer()}';
+        'Réponse: ${item.givenAnswer.isEmpty ? 'Aucune réponse' : ExerciseController.formatNumberForDisplay(item.givenAnswer, AppConstants.useFrenchLocale)}';
+    final correctAnswerString =
+        'Bonne réponse: ${ExerciseController.formatDouble(item.getCorrectAnswer(), AppConstants.useFrenchLocale)}';
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4.0),

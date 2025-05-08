@@ -227,7 +227,9 @@ class _SettingsPageState extends State<SettingsPage> {
           },
         ),
         if (widget.subject.type == SubjectType.addition ||
-            widget.subject.type == SubjectType.soustraction)
+            widget.subject.type == SubjectType.soustraction ||
+            widget.subject.type == SubjectType.multiplication ||
+            widget.subject.type == SubjectType.division)
           CheckboxListTile(
             title: const Text('Opérations décimales'),
             subtitle: const Text('Calculs avec des nombres décimaux'),

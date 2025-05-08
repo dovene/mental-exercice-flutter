@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
+import 'package:flutter/material.dart';
 
 // Custom widget for the number keyboard
 class NumberKeyboard extends StatelessWidget {
@@ -6,7 +9,8 @@ class NumberKeyboard extends StatelessWidget {
   final Function() onSubmit;
   final Function() onDelete;
   final String currentInput;
-  final bool decimalMode; // Added parameter for decimal mode
+  final bool decimalMode; // Parameter for decimal mode
+  final bool useFrenchLocale; // Added parameter for French locale
 
   const NumberKeyboard({
     super.key,
@@ -14,35 +18,63 @@ class NumberKeyboard extends StatelessWidget {
     required this.onSubmit,
     required this.onDelete,
     required this.currentInput,
-    required this.decimalMode, // Required parameter
+    required this.decimalMode,
+    this.useFrenchLocale = true, // Default to false
   });
 
   @override
   Widget build(BuildContext context) {
+    // Determine the decimal separator based on locale
+    final String decimalSeparator = useFrenchLocale ? ',' : '.';
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        // Input display
-        Container(
-          padding: const EdgeInsets.all(4),
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                currentInput,
-                style: const TextStyle(fontSize: 20),
+        // Input display row with decimal button when in decimal mode
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Input display container
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                margin: const EdgeInsets.only(left: 20, right: 20),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        currentInput,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.backspace, size: 20),
+                      onPressed: onDelete,
+                    ),
+                  ],
+                ),
               ),
-              IconButton(
-                icon: const Icon(Icons.backspace, size: 20), // Smaller size
-                onPressed: onDelete,
+            ),
+            // Decimal point/comma button in the first row
+            if (decimalMode)
+              Container(
+                margin: const EdgeInsets.only(right: 18),
+                width: 60,
+                height: 60,
+                child: ElevatedButton(
+                  onPressed: () => onKeyPressed(decimalSeparator),
+                  child: Text(
+                    decimalSeparator,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
-            ],
-          ),
+          ],
         ),
         const SizedBox(height: 8),
         // Number pad
@@ -74,19 +106,6 @@ class NumberKeyboard extends StatelessWidget {
                 ),
               ),
             ),
-            // Decimal point button only visible in decimal mode
-            if (decimalMode)
-              SizedBox(
-                width: 60,
-                height: 60,
-                child: ElevatedButton(
-                  onPressed: () => onKeyPressed('.'),
-                  child: const Text(
-                    '.',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
           ],
         ),
         const SizedBox(height: 16),

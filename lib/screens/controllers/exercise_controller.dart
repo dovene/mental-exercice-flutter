@@ -8,6 +8,7 @@ import '../../../models/subject.dart';
 import '../../../services/audio_service.dart';
 import '../../../services/database_helper.dart';
 import '../../../services/speech_service.dart';
+import '../../helper/app_constants.dart';
 import '../../models/operations_settings.dart';
 import '../../services/problem_generator.dart';
 
@@ -43,6 +44,7 @@ class ExerciseController with ChangeNotifier {
 
   // Animation control
   bool _showAnswerAnimation = false;
+  final bool _useFrenchLocale = AppConstants.useFrenchLocale;
 
   // Getters
   bool get isListening => _isListening;
@@ -64,6 +66,7 @@ class ExerciseController with ChangeNotifier {
   final ProblemGenerator _problemGenerator = ProblemGenerator();
   MathProblem? _currentProblem;
   MathProblem? get currentProblem => _currentProblem;
+  bool get useFrenchLocale => _useFrenchLocale;
 
   ExerciseController(this.subjectType) {
     _loadSettings();
@@ -340,27 +343,32 @@ class ExerciseController with ChangeNotifier {
   }
 
   // static method to format a double to a string with 2 decimal places if there are decimals without trailing zeros
-  static String formatDouble(double value) {
+  static String formatDouble(double value, bool useFrenchLocale) {
+    String result;
     if (value == value.toInt()) {
-      return value.toInt().toString();
+      result = value.toInt().toString();
     } else {
-      return value.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
+      result = value.toStringAsFixed(2).replaceAll(RegExp(r'\.0+$'), '');
     }
+
+    // Replace decimal point with comma for French locale
+    if (useFrenchLocale) {
+      result = result.replaceAll('.', ',');
+    }
+
+    return result;
   }
 
   void handleKeyPress(String key) {
-    // Allow decimal point only if decimalMode is enabled
-    if (key == '.' && _settings.decimalMode) {
-      // Only add decimal point if it doesn't already exist
-      if (!_currentInput.contains('.') && _currentInput.length < 4) {
-        _currentInput += key;
-        notifyListeners();
-      }
-    } else if (_currentInput.length < 5) {
-      // Limiter à 5 caractères maximum (including decimal point)
-      _currentInput += key;
-      notifyListeners();
+    // Handle decimal separators
+    if (key == '.' || key == ',') {
+      if (!_settings.decimalMode) return; // Decimal not allowed
+      if (_currentInput.contains(key)) return; // Separator already present
     }
+
+    // Append key and notify listeners
+    _currentInput += key;
+    notifyListeners();
   }
 
   // Start the exercise timer
@@ -448,7 +456,8 @@ class ExerciseController with ChangeNotifier {
       _streak = 0; // Réinitialiser la série
     } else {
       try {
-        final double userAnswer = double.parse(_lastAnswer);
+
+        final double userAnswer = double.parse(_lastAnswer.replaceAll(',', '.'));
         final double correctAnswer = getCorrectAnswer();
 
         // For decimal mode, allow small rounding differences
@@ -543,6 +552,15 @@ class ExerciseController with ChangeNotifier {
       // For integer mode, always display as integer
       return answer.toInt().toString();
     }
+  }
+
+  // Add a method to format displayed numbers based on locale
+  static String formatNumberForDisplay(String number, bool useFrenchLocale ) {
+    if (useFrenchLocale) {
+      // Replace dots with commas for display in French locale
+      return number.replaceAll('.', ',');
+    }
+    return number;
   }
 
   Future<void> _saveExerciseHistory() async {
