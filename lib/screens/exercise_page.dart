@@ -381,7 +381,6 @@ class _ExercisePageState extends State<ExercisePage>
         break;
       case SubjectType.problemes:
         return controller.currentProblem?.text ?? '';
-        break;
     }
 
     return 'Combien font ${ExerciseController.formatDouble(controller.currentNumber1, controller.useFrenchLocale)} $operationSymbol ${ExerciseController.formatDouble(controller.currentNumber2, controller.useFrenchLocale)} ?';
