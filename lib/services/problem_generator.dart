@@ -108,43 +108,63 @@ class ProblemGenerator {
 
   // Generate a random problem based on settings
   MathProblem generateProblem(OperationSettings settings) {
+    // Create a list of available operations based on settings
+    List<String> availableOperations = [];
+
+    if (settings.includeAddition) {
+      availableOperations.add('addition');
+    }
+    if (settings.includeSubtraction) {
+      availableOperations.add('subtraction');
+    }
+    if (settings.includeMultiplication) {
+      availableOperations.add('multiplication');
+    }
+    if (settings.includeDivision) {
+      availableOperations.add('division');
+    }
+
+    // Fallback to addition if nothing is selected (should never happen due to UI constraints)
+    if (availableOperations.isEmpty) {
+      availableOperations.add('addition');
+    }
+
+    // Select a random operation from available ones
+    String operation =
+        availableOperations[_random.nextInt(availableOperations.length)];
+
+    // Generate problem based on selected operation
     if (settings.isHardMode) {
-      return _generateHardProblem(settings.decimalMode);
+      return _generateHardProblemByType(operation, settings.decimalMode);
     } else {
-      return _generateSimpleProblem(settings.decimalMode);
+      return _generateSimpleProblemByType(operation, settings.decimalMode);
     }
   }
 
-  MathProblem _generateSimpleProblem(bool useDecimals) {
-    // Choose a random problem type (0-3)
-    int problemType = _random.nextInt(4);
-
-    switch (problemType) {
-      case 0:
+  MathProblem _generateSimpleProblemByType(String operation, bool useDecimals) {
+    switch (operation) {
+      case 'addition':
         return _generateAdditionProblem(false, useDecimals);
-      case 1:
+      case 'subtraction':
         return _generateSubtractionProblem(false, useDecimals);
-      case 2:
+      case 'multiplication':
         return _generateMultiplicationProblem(false, useDecimals);
-      case 3:
+      case 'division':
         return _generateDivisionProblem(false, useDecimals);
       default:
         return _generateAdditionProblem(false, useDecimals);
     }
   }
 
-  MathProblem _generateHardProblem(bool useDecimals) {
-    // Choose a random problem type (0-3)
-    int problemType = _random.nextInt(4);
-
-    switch (problemType) {
-      case 0:
+  MathProblem _generateHardProblemByType(String operation, bool useDecimals) {
+    switch (operation) {
+      case 'addition':
         return _generateAdditionProblem(true, useDecimals);
-      case 1:
+      case 'subtraction':
         return _generateSubtractionProblem(true, useDecimals);
-      case 2:
+      case 'multiplication':
         return _generateMultiplicationProblem(true, useDecimals);
-      case 3:
+      case 'division':
         return _generateDivisionProblem(true, useDecimals);
       default:
         return _generateAdditionProblem(true, useDecimals);

@@ -99,7 +99,11 @@ class ExerciseController with ChangeNotifier {
         if (subKey == SettingName.isHardMode.name ||
             subKey == SettingName.simpleMode.name ||
             subKey == SettingName.multiDigitMode.name ||
-            subKey == SettingName.decimalMode.name) {
+            subKey == SettingName.decimalMode.name ||
+            subKey == SettingName.includeAddition.name ||
+            subKey == SettingName.includeSubtraction.name ||
+            subKey == SettingName.includeMultiplication.name ||
+            subKey == SettingName.includeDivision.name) {
           savedSettings[subKey] = prefs.getBool(key);
         } else if (subKey == SettingName.selectedNumber.name || subKey == SettingName.waitingTime.name) {
           savedSettings[subKey] = prefs.getInt(key);

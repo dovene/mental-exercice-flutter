@@ -1,3 +1,4 @@
+// Updated OperationSettings class with operation type selections
 enum SettingName {
   selectedNumber,
   waitingTime,
@@ -5,6 +6,10 @@ enum SettingName {
   simpleMode,
   multiDigitMode,
   decimalMode,
+  includeAddition, // New settings for problem operations
+  includeSubtraction,
+  includeMultiplication,
+  includeDivision,
 }
 
 class OperationSettings {
@@ -15,6 +20,12 @@ class OperationSettings {
   bool multiDigitMode; // Opérations à plusieurs chiffres
   bool decimalMode; // Opérations avec décimaux
 
+  // New properties for problem operations
+  bool includeAddition; // Addition operations
+  bool includeSubtraction; // Subtraction operations
+  bool includeMultiplication; // Multiplication operations
+  bool includeDivision; // Division operations
+
   OperationSettings({
     this.selectedNumber = 0,
     this.waitingTime = 5,
@@ -22,6 +33,11 @@ class OperationSettings {
     this.simpleMode = true,
     this.multiDigitMode = false,
     this.decimalMode = false,
+    // Default: include all operations
+    this.includeAddition = true,
+    this.includeSubtraction = true,
+    this.includeMultiplication = true,
+    this.includeDivision = true,
   });
 
   // Clone avec modification
@@ -32,6 +48,10 @@ class OperationSettings {
     bool? simpleMode,
     bool? multiDigitMode,
     bool? decimalMode,
+    bool? includeAddition,
+    bool? includeSubtraction,
+    bool? includeMultiplication,
+    bool? includeDivision,
   }) {
     return OperationSettings(
       selectedNumber: selectedNumber ?? this.selectedNumber,
@@ -40,6 +60,11 @@ class OperationSettings {
       simpleMode: simpleMode ?? this.simpleMode,
       multiDigitMode: multiDigitMode ?? this.multiDigitMode,
       decimalMode: decimalMode ?? this.decimalMode,
+      includeAddition: includeAddition ?? this.includeAddition,
+      includeSubtraction: includeSubtraction ?? this.includeSubtraction,
+      includeMultiplication:
+          includeMultiplication ?? this.includeMultiplication,
+      includeDivision: includeDivision ?? this.includeDivision,
     );
   }
 
@@ -52,6 +77,10 @@ class OperationSettings {
       SettingName.simpleMode.name: simpleMode,
       SettingName.multiDigitMode.name: multiDigitMode,
       SettingName.decimalMode.name: decimalMode,
+      SettingName.includeAddition.name: includeAddition,
+      SettingName.includeSubtraction.name: includeSubtraction,
+      SettingName.includeMultiplication.name: includeMultiplication,
+      SettingName.includeDivision.name: includeDivision,
     };
   }
 
@@ -64,6 +93,19 @@ class OperationSettings {
       simpleMode: map[SettingName.simpleMode.name] ?? true,
       multiDigitMode: map[SettingName.multiDigitMode.name] ?? false,
       decimalMode: map[SettingName.decimalMode.name] ?? false,
+      includeAddition: map[SettingName.includeAddition.name] ?? true,
+      includeSubtraction: map[SettingName.includeSubtraction.name] ?? true,
+      includeMultiplication:
+          map[SettingName.includeMultiplication.name] ?? true,
+      includeDivision: map[SettingName.includeDivision.name] ?? true,
     );
+  }
+
+  // Ensure at least one operation is selected
+  bool hasAtLeastOneOperation() {
+    return includeAddition ||
+        includeSubtraction ||
+        includeMultiplication ||
+        includeDivision;
   }
 }

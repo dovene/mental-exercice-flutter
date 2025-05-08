@@ -94,8 +94,10 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16),
           if (widget.subject.type == SubjectType.tables)
             _buildTablesNumberSelector(),
-          // building the operation mode settings if the subject is neither tables and nor problemes
-
+          // Add this condition for problem operations settings
+          if (widget.subject.type == SubjectType.problemes)
+            _buildProblemOperationsSettings(),
+          // Existing condition for operation mode settings
           if (!(widget.subject.type == SubjectType.tables ||
               widget.subject.type == SubjectType.problemes))
             _buildOperationModeSettings(),
@@ -116,7 +118,6 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
-      // bottomNavigationBar: _buildBottomBar(),
     );
   }
 
@@ -243,5 +244,74 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
       ],
     );
+  }
+
+  // New method for problem operations settings
+  Widget _buildProblemOperationsSettings() {
+    return _buildSettingsCard(
+      title: 'Types d\'opérations à inclure',
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
+          child:
+              Text('Sélectionnez les opérations à inclure dans les problèmes:'),
+        ),
+        CheckboxListTile(
+          title: const Text('Addition'),
+          value: _settings.includeAddition,
+          activeColor: widget.subject.color,
+          onChanged: (value) {
+            setState(() {
+              _settings = _settings.copyWith(includeAddition: value);
+              _ensureAtLeastOneOperation();
+            });
+          },
+        ),
+        CheckboxListTile(
+          title: const Text('Soustraction'),
+          value: _settings.includeSubtraction,
+          activeColor: widget.subject.color,
+          onChanged: (value) {
+            setState(() {
+              _settings = _settings.copyWith(includeSubtraction: value);
+              _ensureAtLeastOneOperation();
+            });
+          },
+        ),
+        CheckboxListTile(
+          title: const Text('Multiplication'),
+          value: _settings.includeMultiplication,
+          activeColor: widget.subject.color,
+          onChanged: (value) {
+            setState(() {
+              _settings = _settings.copyWith(includeMultiplication: value);
+              _ensureAtLeastOneOperation();
+            });
+          },
+        ),
+        CheckboxListTile(
+          title: const Text('Division'),
+          value: _settings.includeDivision,
+          activeColor: widget.subject.color,
+          onChanged: (value) {
+            setState(() {
+              _settings = _settings.copyWith(includeDivision: value);
+              _ensureAtLeastOneOperation();
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  // Helper method to ensure at least one operation is selected
+  void _ensureAtLeastOneOperation() {
+    if (!(_settings.includeAddition ||
+        _settings.includeSubtraction ||
+        _settings.includeMultiplication ||
+        _settings.includeDivision)) {
+      // If all are false, default to addition
+      _settings = _settings.copyWith(includeAddition: true);
+    }
   }
 }
