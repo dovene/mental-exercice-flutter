@@ -20,5 +20,6 @@
     "**/.idea": true,
     "**/*.freezed.dart": true,
     "**/*.g.dart": true
-  }
+  },
+  "java.configuration.updateBuildConfiguration": "automatic"
 }

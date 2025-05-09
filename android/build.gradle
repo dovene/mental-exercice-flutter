@@ -1,3 +1,16 @@
+buildscript {
+    // You likely already have repositories and dependencies blocks here
+    // If not, add them
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Your existing dependencies here
+        // Add the billing client
+        classpath 'com.android.billingclient:billing:6.0.1'
+    }
+}
 allprojects {
     repositories {
         google()
