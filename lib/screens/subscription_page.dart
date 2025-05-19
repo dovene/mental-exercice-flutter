@@ -10,7 +10,8 @@ class SubscriptionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Subscriptions'),
+        title: const Text('Abonnement'),
+        backgroundColor: Colors.blue,
         actions: [
           TextButton(
             onPressed: () {
@@ -19,7 +20,7 @@ class SubscriptionPage extends StatelessWidget {
               provider.restorePurchases();
             },
             child: const Text(
-              'Restore',
+              'Actualiser',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -43,8 +44,8 @@ class SubscriptionPage extends StatelessWidget {
                       .toList(),
                 ),
               ),
-              if (provider.currentSubscription == SubscriptionType.free)
-                _buildTrialButton(context, provider),
+             /* if (provider.currentSubscription == SubscriptionType.free)
+                _buildTrialButton(context, provider),*/
             ],
           );
         },
@@ -57,7 +58,7 @@ class SubscriptionPage extends StatelessWidget {
     final expiryDate = provider.expiryDate;
     final formattedDate = expiryDate != null
         ? '${expiryDate.day}/${expiryDate.month}/${expiryDate.year}'
-        : 'Never';
+        : 'Jamais';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -71,10 +72,10 @@ class SubscriptionPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Current Plan: ${provider.subscriptionName}',
+                  'Abonnement actuel: ${provider.subscriptionName}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                if (expiryDate != null) Text('Expires: $formattedDate'),
+                if (expiryDate != null) Text('Expire le: $formattedDate'),
               ],
             ),
           ),
@@ -113,7 +114,7 @@ class SubscriptionPage extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '\$${plan.price.toStringAsFixed(2)}',
+                  '${plan.price.toStringAsFixed(2)} \€',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -150,12 +151,12 @@ class SubscriptionPage extends StatelessWidget {
                 onPressed:
                     isCurrentPlan ? null : () => provider.buySubscription(plan),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
+                  backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 child: Text(
-                  isCurrentPlan ? 'Current Plan' : 'Subscribe',
+                  isCurrentPlan ? 'Abonnement actuel' : 'S\'abonner',
                 ),
               ),
             ),

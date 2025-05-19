@@ -1,4 +1,4 @@
-enum SubscriptionType { free, monthly, annual, family }
+enum SubscriptionType { free, monthly, annual, family, test, freeForever }
 
 class SubscriptionPlan {
   final String id;
@@ -27,14 +27,14 @@ class SubscriptionPlan {
       id: 'free',
       storeId: '',
       name: 'Free',
-      description: 'Access to basic operations',
+      description: 'Accès aux opérations sans abonnement',
       price: 0.0,
       type: SubscriptionType.free,
       duration: const Duration(days: 0),
       features: [
-        'Addition exercises',
-        'Limited exercises per day',
-        'Progress tracking'
+        'Addition',
+        'Configuration des exercices d\addition',
+        'Suivi des progrès'
       ],
     );
   }
@@ -42,17 +42,18 @@ class SubscriptionPlan {
   factory SubscriptionPlan.monthly() {
     return SubscriptionPlan(
       id: 'monthly',
-      storeId: 'math_app_monthly', // Set your actual Google/Apple product ID
-      name: 'Monthly Plan',
-      description: 'Full access to all operations',
-      price: 4.99,
+      storeId: 'monthly', // Set your actual Google/Apple product ID
+      name: 'Abonnement Mensuel',
+      description: 'Access complet à toutes les opérations',
+      price: 10,
       type: SubscriptionType.monthly,
       duration: const Duration(days: 30),
       features: [
-        'All operations',
-        'Unlimited exercises',
-        'Progress tracking',
-        'No ads'
+        'Toutes les opérations',
+        'Exercices illimités',
+        'Suivi des progrès',
+        'Contenu bonus',
+        'Pas de publicités'
       ],
     );
   }
@@ -60,38 +61,37 @@ class SubscriptionPlan {
   factory SubscriptionPlan.annual() {
     return SubscriptionPlan(
       id: 'annual',
-      storeId: 'math_app_annual', // Set your actual Google/Apple product ID
-      name: 'Annual Plan',
-      description: 'Full access with 20% savings',
-      price: 47.99,
+      storeId: 'yearly', // Set your actual Google/Apple product ID
+      name: 'Abonnement annuel',
+      description: 'Access complet avec une remise de 20% sur le prix',
+      price: 96,
       type: SubscriptionType.annual,
       duration: const Duration(days: 365),
       features: [
-        'All operations',
-        'Unlimited exercises',
-        'Progress tracking',
-        'Bonus content',
-        'No ads'
+        'Toutes les opérations',
+        'Exercices illimités',
+        'Suivi des progrès',
+        'Contenu bonus',
+        'Pas de publicités'
       ],
     );
   }
 
-  factory SubscriptionPlan.family() {
+  factory SubscriptionPlan.freeForever() {
     return SubscriptionPlan(
-      id: 'family',
-      storeId: 'math_app_family', // Set your actual Google/Apple product ID
-      name: 'Family Plan',
-      description: 'Share with up to 5 family members',
-      price: 79.99,
+      id: 'freeForever',
+      storeId: 'FreeForever', // This is my free forever plan to keep hidden from users
+      name: 'Abonnement gratuit permanent',
+      description: 'Cadeau de Sika',
+      price: 0,
       type: SubscriptionType.family,
-      duration: const Duration(days: 365),
+      duration: const Duration(days: 10000000),
       features: [
-        'Up to 5 profiles',
-        'All operations',
-        'Unlimited exercises',
-        'Progress tracking',
-        'Bonus content',
-        'No ads'
+        'Toutes les opérations',
+        'Exercices illimités',
+        'Suivi des progrès',
+        'Contenu bonus',
+        'Pas de publicités'
       ],
     );
   }

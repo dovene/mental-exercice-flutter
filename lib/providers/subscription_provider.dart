@@ -27,23 +27,26 @@ class SubscriptionProvider extends ChangeNotifier {
     // Always allow access to the free subject (e.g., Addition)
     if (subjectId == 'addition') return true;
 
+   // if (subjectId == 'problemes') return true;
     // For other subjects, check subscription status
-    return _currentSubscription != SubscriptionType.free;
+    return _currentSubscription != SubscriptionType.free;// || _currentSubscription != SubscriptionType.freeForever;
   }
 
   // Format methods for the UI
   String get subscriptionName {
     switch (_currentSubscription) {
       case SubscriptionType.free:
-        return 'Free';
+        return 'Gratuit';
       case SubscriptionType.monthly:
-        return 'Monthly';
+        return 'Mensuel';
       case SubscriptionType.annual:
-        return 'Annual';
+        return 'Annuel';
       case SubscriptionType.family:
-        return 'Family';
+        return 'Famille';
+      case SubscriptionType.freeForever:
+        return 'Abonnement gratuit permanent';
       default:
-        return 'Unknown';
+        return 'Inconnu';
     }
   }
 
@@ -53,14 +56,13 @@ class SubscriptionProvider extends ChangeNotifier {
 
   Future<void> _initialize() async {
     // For testing only
-    /*
-  if (Platform.isAndroid) {
+
     InAppPurchase.instance.isAvailable().then((available) {
       if (available) {
         InAppPurchase.instance.restorePurchases();
       }
     });
-  }*/
+
     // Load existing subscription from local storage
     await _loadSubscriptionStatus();
 
@@ -111,12 +113,14 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> _initializeProducts() async {
+
+    bool isGiftSubscriptionEnabled = false;
     // Create the list of subscription plans
     _plans = [
-      SubscriptionPlan.free(),
+      //SubscriptionPlan.free(),
+      if (isGiftSubscriptionEnabled) SubscriptionPlan.freeForever(),
       SubscriptionPlan.monthly(),
       SubscriptionPlan.annual(),
-      SubscriptionPlan.family(),
     ];
 
     // Get the store IDs for the purchasable plans
@@ -189,9 +193,26 @@ class SubscriptionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _handleSuccessfulFreeSubscription(SubscriptionPlan plan) async {
+    // Update subscription details
+    _currentSubscription = plan.type;
+
+    // Calculate expiry date based on purchase date
+    final now = DateTime.now();
+    _expiryDate = now.add(plan.duration);
+
+    // Save to local storage
+    await _saveSubscriptionStatus();
+
+    notifyListeners();
+  }
+
   // Initiate a purchase
   Future<void> buySubscription(SubscriptionPlan plan) async {
-    if (plan.type == SubscriptionType.free) return;
+    if (plan.type == SubscriptionType.free || plan.type == SubscriptionType.freeForever) {
+      _handleSuccessfulFreeSubscription(plan);
+      return;
+    }
 
     try {
       // Find the corresponding product

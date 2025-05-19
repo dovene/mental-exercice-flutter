@@ -35,7 +35,7 @@ class SubjectCard extends StatelessWidget {
     final emoji = _getAchievementEmoji(stats['percentage'] as int);
     final subscriptionProvider = Provider.of<SubscriptionProvider>(context);
     final isLocked = !subscriptionProvider
-        .isSubjectUnlocked(subject.type.toString().toLowerCase());
+        .isSubjectUnlocked(subject.type.name.toLowerCase());
 
     return Hero(
       tag: 'subject-${subject.type}',
@@ -143,13 +143,13 @@ class SubjectCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Premium Content'),
+        title: const Text('Accès premium'),
         content: const Text(
-            'This subject is only available with a premium subscription. Would you like to view subscription options?'),
+            'Pour accéder à cette fonctionnalité, vous devez souscrire à un abonnement premium.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Not Now'),
+            child: const Text('Annuler'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -161,7 +161,7 @@ class SubjectCard extends StatelessWidget {
                 ),
               );
             },
-            child: const Text('View Plans'),
+            child: const Text('Souscrire'),
           ),
         ],
       ),

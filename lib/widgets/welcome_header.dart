@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../screens/subscription_page.dart';
+
 class WelcomeHeader extends StatelessWidget {
   final Size screenSize;
 
@@ -34,13 +36,24 @@ class WelcomeHeader extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Les maths, c\'est fun et j\'adore ❤️',
+            'Les maths, c\'est amusant et on aime ❤️',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16,
               color: Colors.black87,
             ),
           ),
+          const SizedBox(height: 10),
+          // add a button to navigate to the subscription page
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const SubscriptionPage()),
+              );
+            }, child:
+            const Text('Abonnement'),)
         ],
       ),
     );
