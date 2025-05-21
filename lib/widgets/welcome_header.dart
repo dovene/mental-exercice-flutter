@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../screens/subscription_page.dart';
+import '../screens/information_page.dart';
 
 class WelcomeHeader extends StatelessWidget {
   final Size screenSize;
@@ -17,13 +16,46 @@ class WelcomeHeader extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: screenSize.height * 0.03),
       child: Column(
         children: [
-          const Text(
-            'Math Pour Enfants',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.indigo,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Expanded(
+                child: SizedBox(), // For centering
+              ),
+              const Text(
+                'Math Pour Enfants',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo,
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.indigo,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const InformationPage(),
+                            settings: const RouteSettings(name: 'information_page'),
+                          ),
+                        );
+                      },
+                      tooltip: 'Informations',
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Container(

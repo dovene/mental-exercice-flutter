@@ -12,7 +12,8 @@ class SubscriptionPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Abonnement'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
         actions: [
           TextButton(
             onPressed: () {
@@ -186,7 +187,7 @@ class SubscriptionPage extends StatelessWidget {
                 onPressed:
                 isCurrentPlan ? null : () => provider.buySubscription(plan),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Colors.indigo,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
