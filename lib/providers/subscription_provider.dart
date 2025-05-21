@@ -27,9 +27,8 @@ class SubscriptionProvider extends ChangeNotifier {
     // Always allow access to the free subject (e.g., Addition)
     if (subjectId == 'addition') return true;
 
-   // if (subjectId == 'problemes') return true;
     // For other subjects, check subscription status
-    return _currentSubscription != SubscriptionType.free;// || _currentSubscription != SubscriptionType.freeForever;
+    return _currentSubscription != SubscriptionType.free;
   }
 
   // Format methods for the UI
@@ -55,13 +54,14 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
-    // For testing only
 
-    InAppPurchase.instance.isAvailable().then((available) {
-      if (available) {
-        InAppPurchase.instance.restorePurchases();
-      }
-    });
+    if (Platform.isAndroid) {
+      InAppPurchase.instance.isAvailable().then((available) {
+        if (available) {
+          InAppPurchase.instance.restorePurchases();
+        }
+      });
+    }
 
     // Load existing subscription from local storage
     await _loadSubscriptionStatus();
@@ -113,7 +113,6 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> _initializeProducts() async {
-
     bool isGiftSubscriptionEnabled = false;
     // Create the list of subscription plans
     _plans = [
@@ -131,7 +130,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
     try {
       final ProductDetailsResponse response =
-          await _inAppPurchase.queryProductDetails(productIds);
+      await _inAppPurchase.queryProductDetails(productIds);
 
       if (response.notFoundIDs.isNotEmpty) {
         debugPrint('Products not found: ${response.notFoundIDs}');
@@ -148,12 +147,14 @@ class SubscriptionProvider extends ChangeNotifier {
     for (final purchaseDetails in purchaseDetailsList) {
       if (purchaseDetails.status == PurchaseStatus.pending) {
         // Show loading UI
+        debugPrint('Purchase pending: ${purchaseDetails.productID}');
       } else {
         if (purchaseDetails.status == PurchaseStatus.error) {
           // Handle error
           debugPrint('Purchase error: ${purchaseDetails.error?.message}');
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
+          debugPrint('Purchase successful/restored: ${purchaseDetails.productID}');
           _handleSuccessfulPurchase(purchaseDetails);
         }
 
@@ -176,7 +177,7 @@ class SubscriptionProvider extends ChangeNotifier {
   Future<void> _handleSuccessfulPurchase(PurchaseDetails purchase) async {
     // Find which plan was purchased
     final plan = _plans.firstWhere(
-      (plan) => plan.storeId == purchase.productID,
+          (plan) => plan.storeId == purchase.productID,
       orElse: () => SubscriptionPlan.free(),
     );
 
@@ -186,6 +187,9 @@ class SubscriptionProvider extends ChangeNotifier {
     // Calculate expiry date based on purchase date
     final now = DateTime.now();
     _expiryDate = now.add(plan.duration);
+
+    // Log subscription details
+    debugPrint('Subscription activated: ${plan.name}, expires: $_expiryDate');
 
     // Save to local storage
     await _saveSubscriptionStatus();
@@ -217,7 +221,7 @@ class SubscriptionProvider extends ChangeNotifier {
     try {
       // Find the corresponding product
       final product = _products.firstWhere(
-        (product) => product.id == plan.storeId,
+            (product) => product.id == plan.storeId,
       );
 
       // Create purchase param
@@ -232,9 +236,10 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
-  // Restore purchases
+  // Restore purchases - can be called manually if needed
   Future<void> restorePurchases() async {
     try {
+      debugPrint('Manually restoring purchases');
       await _inAppPurchase.restorePurchases();
     } catch (e) {
       debugPrint('Failed to restore purchases: $e');

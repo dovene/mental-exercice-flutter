@@ -43,17 +43,6 @@ class WelcomeHeader extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 10),
-          // add a button to navigate to the subscription page
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const SubscriptionPage()),
-              );
-            }, child:
-            const Text('Abonnement'),)
         ],
       ),
     );

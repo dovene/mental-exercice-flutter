@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/subscription.dart';
@@ -16,8 +17,42 @@ class SubscriptionPage extends StatelessWidget {
           TextButton(
             onPressed: () {
               final provider =
-                  Provider.of<SubscriptionProvider>(context, listen: false);
-              provider.restorePurchases();
+              Provider.of<SubscriptionProvider>(context, listen: false);
+
+              // Handle platform-specific restore experience
+              if (Platform.isIOS) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Restaurer les achats'),
+                    content: const Text(
+                        'Cette action pourrait vous demander de vous connecter avec votre identifiant Apple. Voulez-vous continuer?'
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Annuler'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          provider.restorePurchases();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Restauration des achats en cours...')),
+                          );
+                        },
+                        child: const Text('Continuer'),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                // For Android, restore directly
+                provider.restorePurchases();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Actualisation en cours...')),
+                );
+              }
             },
             child: const Text(
               'Actualiser',
@@ -44,7 +79,7 @@ class SubscriptionPage extends StatelessWidget {
                       .toList(),
                 ),
               ),
-             /* if (provider.currentSubscription == SubscriptionType.free)
+              /* if (provider.currentSubscription == SubscriptionType.free)
                 _buildTrialButton(context, provider),*/
             ],
           );
@@ -131,25 +166,25 @@ class SubscriptionPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ...plan.features.map((feature) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: Theme.of(context).primaryColor,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(feature)),
-                    ],
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Theme.of(context).primaryColor,
+                    size: 16,
                   ),
-                )),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(feature)),
+                ],
+              ),
+            )),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed:
-                    isCurrentPlan ? null : () => provider.buySubscription(plan),
+                isCurrentPlan ? null : () => provider.buySubscription(plan),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,

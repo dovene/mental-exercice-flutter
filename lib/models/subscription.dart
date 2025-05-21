@@ -42,7 +42,7 @@ class SubscriptionPlan {
   factory SubscriptionPlan.monthly() {
     return SubscriptionPlan(
       id: 'monthly',
-      storeId: 'monthly', // Set your actual Google/Apple product ID
+      storeId: 'mathomagic_monthly', // Set your actual Google/Apple product ID
       name: 'Abonnement Mensuel',
       description: 'Access complet à toutes les opérations',
       price: 10,
@@ -61,7 +61,7 @@ class SubscriptionPlan {
   factory SubscriptionPlan.annual() {
     return SubscriptionPlan(
       id: 'annual',
-      storeId: 'yearly', // Set your actual Google/Apple product ID
+      storeId: 'mathomagic_yearly', // Set your actual Google/Apple product ID
       name: 'Abonnement annuel',
       description: 'Access complet avec une remise de 20% sur le prix',
       price: 96,
