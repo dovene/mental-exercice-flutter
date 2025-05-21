@@ -43,6 +43,14 @@ class _ExercisePageState extends State<ExercisePage>
   void initState() {
     super.initState();
     _controller = ExerciseController(widget.subject.type);
+    // Run after the first frame is rendered to ensure context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        // Pass context to controller for permission dialogs
+        _controller.setContext(context);
+      }
+    });
+
     _initializeScoreController();
     _loadSuccessStats();
     _isProblemSuject = widget.subject.type == SubjectType.problemes;
@@ -228,7 +236,7 @@ class _ExercisePageState extends State<ExercisePage>
                   children: [
                     Switch(
                       value: !controller.isKeyboardMode,
-                      onChanged: (value) => controller.toggleInputMode(value),
+                      onChanged: (value) => controller.toggleInputMode(value, context),
                       activeColor: widget.subject.color,
                     ),
                     const Text('Mode voix'),

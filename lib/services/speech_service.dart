@@ -1,13 +1,12 @@
-import 'package:speech_to_text/speech_to_text.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
 
 class SpeechService {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isInitialized = false;
 
+  // This method only initializes the speech engine without requesting permissions
   Future<void> initialize() async {
     if (!_isInitialized) {
       _isInitialized = await _speech.initialize(
@@ -17,7 +16,68 @@ class SpeechService {
     }
   }
 
-  void listen(Function(String) onResult) async {
+  // Request microphone permissions with custom message
+  Future<bool> requestPermissions(BuildContext context) async {
+    // 1️⃣ Ask the user if they want to continue
+    final bool? proceed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Accès au microphone'),
+        content: const Text(
+          'Pour utiliser le mode voix, HelloMath a besoin d\'accéder à votre microphone. '
+          'Veuillez autoriser l\'accès dans la fenêtre suivante.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false), // “Annuler”
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true), // “Continuer”
+            child: const Text('Continuer'),
+          ),
+        ],
+      ),
+    );
+
+    // User backed out
+    if (proceed != true) return false;
+
+    // Now show the system permission sheet
+    final status = await Permission.microphone.request();
+    return status.isGranted;
+  }
+
+  //method to check if the user has granted permission to use the microphone
+  Future<bool> checkPermission(BuildContext context) async {
+    // Check if permission is already granted
+    bool hasPermission = await Permission.microphone.status.isGranted;
+
+    // If not granted, request permission with custom dialog
+    if (!hasPermission) {
+      hasPermission = await requestPermissions(context);
+      if (!hasPermission) {
+        return false; // User denied permission
+      }
+    }
+    return true;
+  }
+
+  Future<bool> listen(Function(String) onResult,
+      {required BuildContext context}) async {
+    // Check if permission is already granted
+    bool hasPermission = await Permission.microphone.status.isGranted;
+
+    // If not granted, request permission with custom dialog
+    if (!hasPermission) {
+      hasPermission = await requestPermissions(context);
+      if (!hasPermission) {
+        return false; // User denied permission
+      }
+    }
+
+    // Initialize speech recognition if not already done
     if (!_isInitialized) {
       await initialize();
     }
@@ -28,12 +88,17 @@ class SpeechService {
         onResult: (result) {
           if (result.finalResult) {
             // Filtrer pour ne garder que les chiffres
+            //debuglog the result
+            debugPrint('Recognized: ${result.recognizedWords}');
             final filtered = _filterNumber(result.recognizedWords);
             onResult(filtered);
           }
         },
       );
+      return true;
     }
+
+    return false;
   }
 
   String _filterNumber(String input) {
@@ -100,65 +165,3 @@ class SpeechService {
     stop();
   }
 }
-
-/*class SpeechService {
-  final SpeechToText _speechToText = SpeechToText();
-  bool _isListening = false;
-
-  Future<void> init() async {
-    await _requestPermissions();
-    await _initializeSpeechToText();
-  }
-
-  Future<void> _requestPermissions() async {
-    if (await Permission.microphone.isDenied) {
-      await Permission.microphone.request();
-    }
-  }
-
-  Future<void> _initializeSpeechToText() async {
-    await _speechToText.initialize(
-      debugLogging: true,
-      onError: (error) => print("Speech recognition error: ${error.errorMsg}"),
-      onStatus: (status) => print("Speech recognition status: $status"),
-    );
-  }
-
-  bool get isListening => _isListening;
-
-  Future<void> startListening({
-    required Function(String) onResult,
-    required Function onFinalResult,
-    required int listenDuration,
-    String localeId = 'fr_FR',
-  }) async {
-    if (!_speechToText.isAvailable || _isListening) return;
-
-    _isListening = true;
-
-    await _speechToText.listen(
-      onResult: (result) {
-        onResult(result.recognizedWords);
-        if (result.finalResult) {
-          stopListening();
-          onFinalResult();
-        }
-      },
-      listenFor: Duration(seconds: listenDuration),
-      localeId: localeId,
-    );
-  }
-
-  Future<void> stopListening() async {
-    if (_isListening) {
-      await _speechToText.stop();
-      _isListening = false;
-    }
-  }
-
-  bool get isAvailable => _speechToText.isAvailable;
-
-  void dispose() {
-    _speechToText.stop();
-  }
-}*/

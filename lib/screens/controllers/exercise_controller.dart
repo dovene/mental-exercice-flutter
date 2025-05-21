@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../models/exercise_history.dart';
@@ -68,11 +69,16 @@ class ExerciseController with ChangeNotifier {
   MathProblem? get currentProblem => _currentProblem;
   bool get useFrenchLocale => _useFrenchLocale;
 
+  BuildContext? _currentContext;
+
   ExerciseController(this.subjectType) {
     _loadSettings();
     _loadScore();
     _loadTimerPreference();
-    _speechService.initialize();
+  }
+
+  void setContext(BuildContext context) {
+    _currentContext = context;
   }
 
   Future<void> _loadSettings() async {
@@ -105,20 +111,23 @@ class ExerciseController with ChangeNotifier {
             subKey == SettingName.includeMultiplication.name ||
             subKey == SettingName.includeDivision.name) {
           savedSettings[subKey] = prefs.getBool(key);
-        } else if (subKey == SettingName.selectedNumber.name || subKey == SettingName.waitingTime.name) {
+        } else if (subKey == SettingName.selectedNumber.name ||
+            subKey == SettingName.waitingTime.name) {
           savedSettings[subKey] = prefs.getInt(key);
         }
       });
 
       if (savedSettings.isNotEmpty) {
         _settings = OperationSettings.fromMap(savedSettings);
-        debugPrint('Loaded settings for ${subjectType.toString()}: ${savedSettings.toString()}');
+        debugPrint(
+            'Loaded settings for ${subjectType.toString()}: ${savedSettings.toString()}');
         notifyListeners();
       }
     } else {
       // If no settings exist yet, save default settings
       _saveSettings();
-      debugPrint('No settings found for ${subjectType.toString()}, saving defaults');
+      debugPrint(
+          'No settings found for ${subjectType.toString()}, saving defaults');
     }
   }
 
@@ -178,7 +187,7 @@ class ExerciseController with ChangeNotifier {
   Future<void> _loadScore() async {
     try {
       final stats =
-      await DatabaseHelper.instance.getStats(subjectType: subjectType);
+          await DatabaseHelper.instance.getStats(subjectType: subjectType);
       _score = stats['percentage'] as int;
       notifyListeners();
     } catch (e) {
@@ -189,12 +198,33 @@ class ExerciseController with ChangeNotifier {
   void updateSettings(OperationSettings newSettings) {
     _settings = newSettings;
     _saveSettings();
-    debugPrint('Settings updated for ${subjectType.toString()}: ${newSettings.toMap().toString()}');
+    debugPrint(
+        'Settings updated for ${subjectType.toString()}: ${newSettings.toMap().toString()}');
     notifyListeners();
   }
 
-  void toggleInputMode(bool voiceMode) {
+  void toggleInputMode(bool voiceMode, BuildContext context) {
+    setContext(context);
+    // Only update input mode without initializing speech
     _isKeyboardMode = !voiceMode;
+
+    // if switching to voice mode, check if permissions are not granted and request them
+    if (!_isKeyboardMode) {
+      // Check if permissions are granted
+      _speechService.checkPermission(context).then((granted) {
+        if (!granted) {
+          _isKeyboardMode = true;
+          notifyListeners();
+        }
+      });
+    }
+
+    // If switching to keyboard mode, stop speech recognition
+    if (_isKeyboardMode && _isListening) {
+      _speechService.stop();
+      _isListening = false;
+    }
+
     notifyListeners();
   }
 
@@ -291,7 +321,7 @@ class ExerciseController with ChangeNotifier {
         maxNum = 9999; // Multiplications à plusieurs chiffres
       } else if (subjectType == SubjectType.division) {
         maxNum =
-        48; // Divisions limitées pour obtenir des résultats raisonnables
+            48; // Divisions limitées pour obtenir des résultats raisonnables
       }
     } else if (_settings.isHardMode) {
       maxNum = 9999; // Mode difficile
@@ -409,22 +439,47 @@ class ExerciseController with ChangeNotifier {
     }
   }
 
-  void _startListening() {
+  Future<void> _startListening() async {
     if (_isListening) return;
 
-    _isListening = true;
-    notifyListeners();
+    // Get BuildContext from the closest Navigator
+    final context = _getNavigatorContext();
+    if (context == null) {
+      debugPrint("Context not available for speech permissions");
+      // Fall back to keyboard mode
+      _isKeyboardMode = true;
+      notifyListeners();
+      return;
+    }
 
-    _speechService.listen((result) {
+    // Try to start listening with permissions handling
+    bool success = await _speechService.listen((result) {
       _lastAnswer = result;
       notifyListeners();
-    });
+    }, context: context);
 
-    // Arrêter l'écoute après 5 secondes
-    _listenTimer = Timer(const Duration(seconds: 5), () {
-      _stopListening();
-      triggerAnswerCheck();
-    });
+    // Update UI based on permission status
+    if (success) {
+      _isListening = true;
+      notifyListeners();
+
+      // Arrêter l'écoute après 5 secondes
+      _listenTimer = Timer(const Duration(seconds: 10), () {
+        _stopListening();
+        triggerAnswerCheck();
+      });
+    } else {
+      // Fall back to keyboard mode if permission denied
+      _isKeyboardMode = true;
+      notifyListeners();
+    }
+  }
+
+  BuildContext? _getNavigatorContext() {
+    // This method needs to be called from a place where context is available
+    // For this, you'll need to modify ExercisePage to pass context to controller
+    // This is a placeholder that will be filled by the context passed from ExercisePage
+    return _currentContext;
   }
 
   void _stopListening() {
@@ -460,8 +515,8 @@ class ExerciseController with ChangeNotifier {
       _streak = 0; // Réinitialiser la série
     } else {
       try {
-
-        final double userAnswer = double.parse(_lastAnswer.replaceAll(',', '.'));
+        final double userAnswer =
+            double.parse(_lastAnswer.replaceAll(',', '.'));
         final double correctAnswer = getCorrectAnswer();
 
         // For decimal mode, allow small rounding differences
@@ -515,7 +570,7 @@ class ExerciseController with ChangeNotifier {
         result = _currentNumber1 + _currentNumber2;
         break;
       case SubjectType.soustraction:
-      // Fix for floating-point precision issues in subtraction
+        // Fix for floating-point precision issues in subtraction
         String num1Str = _currentNumber1.toStringAsFixed(2);
         String num2Str = _currentNumber2.toStringAsFixed(2);
         double n1 = double.parse(num1Str);
@@ -523,7 +578,7 @@ class ExerciseController with ChangeNotifier {
         result = double.parse((n1 - n2).toStringAsFixed(2));
         break;
       case SubjectType.division:
-      // Fix for floating-point precision issues in division
+        // Fix for floating-point precision issues in division
         if (_settings.decimalMode) {
           String num1Str = _currentNumber1.toStringAsFixed(2);
           String num2Str = _currentNumber2.toStringAsFixed(2);
@@ -559,7 +614,7 @@ class ExerciseController with ChangeNotifier {
   }
 
   // Add a method to format displayed numbers based on locale
-  static String formatNumberForDisplay(String number, bool useFrenchLocale ) {
+  static String formatNumberForDisplay(String number, bool useFrenchLocale) {
     if (useFrenchLocale) {
       // Replace dots with commas for display in French locale
       return number.replaceAll('.', ',');
