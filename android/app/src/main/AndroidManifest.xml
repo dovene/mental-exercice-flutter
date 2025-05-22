@@ -7,6 +7,18 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="com.android.vending.BILLING" />
 
+    <queries>
+        <!-- Pour la composition d'un appel téléphonique -->
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+        </intent>
+        <!-- Pour l'envoi d'un email via mailto: -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+    </queries>
+
     <application
         android:label="MathoMagic"
         android:name="${applicationName}"

@@ -35,9 +35,9 @@ class OperationSettings {
     this.decimalMode = false,
     // Default: include all operations
     this.includeAddition = true,
-    this.includeSubtraction = true,
-    this.includeMultiplication = true,
-    this.includeDivision = true,
+    this.includeSubtraction = false,
+    this.includeMultiplication = false,
+    this.includeDivision = false,
   });
 
   // Clone avec modification
