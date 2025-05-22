@@ -130,16 +130,7 @@ class InformationPage extends StatelessWidget {
               icon: Icons.email_outlined,
               title: 'Email',
               subtitle: contactEmail,
-              onTap: () async {
-                final Uri emailUri = Uri(
-                  scheme: 'mailto',
-                  path: contactEmail,
-                  query: 'subject=Support Math Pour Enfants&body=Bonjour,',
-                );
-                if (await canLaunchUrl(emailUri)) {
-                  await launchUrl(emailUri);
-                }
-              },
+              onTap: () => _launchEmail(context),
               showCopy: true,
               valueToCopy: contactEmail,
             ),
@@ -149,15 +140,7 @@ class InformationPage extends StatelessWidget {
               icon: Icons.phone_outlined,
               title: 'Téléphone',
               subtitle: contactPhone,
-              onTap: () async {
-                final Uri phoneUri = Uri(
-                  scheme: 'tel',
-                  path: contactPhone.replaceAll(' ', ''),
-                );
-                if (await canLaunchUrl(phoneUri)) {
-                  await launchUrl(phoneUri);
-                }
-              },
+              onTap: () => _launchPhone(context),
               showCopy: true,
               valueToCopy: contactPhone,
             ),
@@ -165,7 +148,7 @@ class InformationPage extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 12),
             Text(
-              'Disponible du lundi au vendredi de 9h à 18h',
+              'Disponible du lundi au vendredi de 9h à 18h.\nUtilisez de préférence Whatsapp.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -325,5 +308,83 @@ class InformationPage extends StatelessWidget {
       ),
     );
   }
-}
 
+  Future<void> _launchEmail(BuildContext context) async {
+    final Uri emailUri = Uri(
+      scheme: 'mailto',
+      path: contactEmail,
+      query: _encodeQueryParameters(<String, String>{
+        'subject': 'Support Math Pour Enfants',
+        'body': 'Bonjour',
+      }),
+    );
+
+    try {
+      if (await canLaunchUrl(emailUri)) {
+        await launchUrl(emailUri);
+      } else {
+        // Fallback: copy email to clipboard and show dialog
+        await _showContactFallback(context, 'Email', contactEmail);
+      }
+    } catch (e) {
+      await _showContactFallback(context, 'Email', contactEmail);
+    }
+  }
+
+  Future<void> _launchPhone(BuildContext context) async {
+    // Clean phone number for tel: scheme
+    final String cleanPhone = contactPhone.replaceAll(RegExp(r'[^\d+]'), '');
+    final Uri phoneUri = Uri(scheme: 'tel', path: cleanPhone);
+
+    try {
+      if (await canLaunchUrl(phoneUri)) {
+        await launchUrl(phoneUri);
+      } else {
+        // Fallback: copy phone to clipboard and show dialog
+        await _showContactFallback(context, 'Téléphone', contactPhone);
+      }
+    } catch (e) {
+      await _showContactFallback(context, 'Téléphone', contactPhone);
+    }
+  }
+
+  Future<void> _showContactFallback(BuildContext context, String type, String value) async {
+    // Copy to clipboard
+    await Clipboard.setData(ClipboardData(text: value));
+
+    // Show dialog with options
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Contacter par $type'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Aucune application disponible pour ouvrir automatiquement ce lien.'),
+              const SizedBox(height: 16),
+              Text('$type: $value'),
+              const SizedBox(height: 8),
+              Text('✓ Copié dans le presse-papiers',
+                  style: TextStyle(color: Colors.green.shade700)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String? _encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((MapEntry<String, String> e) =>
+    '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+  }
+}
