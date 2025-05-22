@@ -490,10 +490,23 @@ class _ExercisePageState extends State<ExercisePage>
       displayAnswer = displayAnswer.replaceAll('.', ',');
     }
 
-    return controller.isCorrect!
-        ? 'Génial, La bonne réponse était bien : $displayAnswer'
-        : 'Désolé, vous avez proposé $displayAnswer '
-        'mais la bonne réponse était $formattedCorrectAnswer';
+    if (controller.isCorrect!) {
+      // Calculate remaining answers for magical animation
+      final remainingForMagic = AppConstants.magicAnimationStreak -
+          (controller.streak % AppConstants.magicAnimationStreak);
+
+      String baseMessage = 'Génial, La bonne réponse était bien : $displayAnswer';
+
+      // Only show the magic counter if we're not at the milestone and streak > 0
+      if (remainingForMagic > 0 && controller.streak > 0) {
+        baseMessage += '\nEncore $remainingForMagic bonne${remainingForMagic > 1 ? 's' : ''} réponse${remainingForMagic > 1 ? 's' : ''} pour la magie ! ✨';
+      }
+
+      return baseMessage;
+    } else {
+      return 'Désolé, vous avez proposé $displayAnswer '
+          'mais la bonne réponse était $formattedCorrectAnswer';
+    }
   }
 
   Widget _buildKeyboard() {
