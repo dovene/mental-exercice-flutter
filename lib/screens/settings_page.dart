@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/operations_settings.dart';
 import '../models/subject.dart';
+import '../models/subscription.dart';
+import '../providers/subscription_provider.dart';
+import '../screens/subscription_page.dart';
 
 class SettingsPage extends StatefulWidget {
   final Subject subject;
@@ -102,19 +106,56 @@ class _SettingsPageState extends State<SettingsPage> {
               widget.subject.type == SubjectType.problemes))
             _buildOperationModeSettings(),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              widget.onSettingsChanged(_settings);
-              Navigator.pop(context);
+          // Save button with lock for probleme settings
+          Consumer<SubscriptionProvider>(
+            builder: (context, subscriptionProvider, child) {
+              final isProbleme = widget.subject.type == SubjectType.problemes;
+              final isSubscribed = SubscriptionType.free != subscriptionProvider.currentSubscription;
+              final isLocked = isProbleme && !isSubscribed;
+
+              return Stack(
+                children: [
+                  ElevatedButton(
+                    onPressed: isLocked ? null : () {
+                      widget.onSettingsChanged(_settings);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isLocked ? Colors.grey : widget.subject.color,
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      disabledBackgroundColor: Colors.grey,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isLocked) ...[
+                          const Icon(
+                            Icons.lock,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Text(
+                          isLocked ? 'Premium requis' : 'Enregistrer les paramètres',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isLocked)
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _showSubscriptionDialog(context),
+                          child: Container(),
+                        ),
+                      ),
+                    ),
+                ],
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: widget.subject.color,
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-            ),
-            child: const Text(
-              'Enregistrer les paramètres',
-              style: TextStyle(color: Colors.white),
-            ),
           ),
         ],
       ),
@@ -246,7 +287,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // New method for problem operations settings
+  // Updated method for problem operations settings (no lock here)
   Widget _buildProblemOperationsSettings() {
     return _buildSettingsCard(
       title: 'Types d\'opérations à inclure',
@@ -254,7 +295,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),
           child:
-              Text('Sélectionnez les opérations à inclure dans les problèmes:'),
+          Text('Sélectionnez les opérations à inclure dans les problèmes:'),
         ),
         CheckboxListTile(
           title: const Text('Addition'),
@@ -304,13 +345,45 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+
+
+  // Show subscription dialog similar to welcome page
+  void _showSubscriptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Accès premium'),
+        content: const Text(
+            'Pour accéder à toutes les opérations dans les problèmes, vous devez souscrire à un abonnement premium.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SubscriptionPage(),
+                ),
+              );
+            },
+            child: const Text('Souscrire'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Helper method to ensure at least one operation is selected
   void _ensureAtLeastOneOperation() {
     if (!(_settings.includeAddition ||
         _settings.includeSubtraction ||
         _settings.includeMultiplication ||
         _settings.includeDivision)) {
-      // If all are false, default to addition
+      // If all are false, default to addition (which is always free)
       _settings = _settings.copyWith(includeAddition: true);
     }
   }
