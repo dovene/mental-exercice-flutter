@@ -115,11 +115,8 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> _initializeProducts() async {
-    bool isGiftSubscriptionEnabled = false;
     // Create the list of subscription plans
     _plans = [
-      //SubscriptionPlan.free(),
-      if (isGiftSubscriptionEnabled) SubscriptionPlan.freeForever(),
       SubscriptionPlan.monthly(),
       SubscriptionPlan.annual(),
     ];
