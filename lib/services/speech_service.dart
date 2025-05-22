@@ -1,108 +1,105 @@
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:permission_handler/permission_handler.dart';
 
 class SpeechService {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isInitialized = false;
+  Function(String)? _onError; // Callback for error handling
 
-  // This method only initializes the speech engine without requesting permissions
-  Future<void> initialize() async {
+  String? _frLocaleId;
+
+  // Set error callback
+  void setErrorCallback(Function(String) callback) {
+    _onError = callback;
+  }
+
+  Future<bool> initialize() async {
     if (!_isInitialized) {
       _isInitialized = await _speech.initialize(
-        onError: (error) => debugPrint('Speech recognition error: $error'),
+        onError: (error) {
+          debugPrint('Speech recognition error: $error');
+          _handleSpeechError(error);
+        },
         onStatus: (status) => debugPrint('Speech recognition status: $status'),
       );
-    }
-  }
 
-  // Request microphone permissions with custom message
-  Future<bool> requestPermissions(BuildContext context) async {
-    // 1️⃣ Ask the user if they want to continue
-    final bool? proceed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Accès au microphone'),
-        content: const Text(
-          'Pour utiliser le mode voix, HelloMath a besoin d\'accéder à votre microphone. '
-          'Veuillez autoriser l\'accès dans la fenêtre suivante.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false), // “Annuler”
-            child: const Text('Annuler'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true), // “Continuer”
-            child: const Text('Continuer'),
-          ),
-        ],
-      ),
-    );
-
-    // User backed out
-    if (proceed != true) return false;
-
-    // Now show the system permission sheet
-    final status = await Permission.microphone.request();
-    return status.isGranted;
-  }
-
-  //method to check if the user has granted permission to use the microphone
-  Future<bool> checkPermission(BuildContext context) async {
-    // Check if permission is already granted
-    bool hasPermission = await Permission.microphone.status.isGranted;
-
-    // If not granted, request permission with custom dialog
-    if (!hasPermission) {
-      hasPermission = await requestPermissions(context);
-      if (!hasPermission) {
-        return false; // User denied permission
+      if (_frLocaleId == null && _isInitialized) {
+        // Discover all locales the engine supports:
+        List<stt.LocaleName> locales = await _speech.locales();
+        // Look for French variants:
+        final fr = locales.firstWhere(
+              (loc) =>
+          loc.localeId.toLowerCase().startsWith('fr') ||
+              loc.name.toLowerCase().contains('français'),
+          orElse: () => locales.first,
+        );
+        _frLocaleId = fr.localeId;
+        debugPrint('→ Using localeId: $_frLocaleId (${fr.name})');
       }
+
+
+
+      return _isInitialized;
     }
-    return true;
+    return _isInitialized;
   }
 
-  Future<bool> listen(Function(String) onResult,
-      {required BuildContext context}) async {
-    // Check if permission is already granted
-    bool hasPermission = await Permission.microphone.status.isGranted;
-
-    // If not granted, request permission with custom dialog
-    if (!hasPermission) {
-      hasPermission = await requestPermissions(context);
-      if (!hasPermission) {
-        return false; // User denied permission
-      }
-    }
-
-    // Initialize speech recognition if not already done
+  void listen(Function(String) onResult) async {
     if (!_isInitialized) {
       await initialize();
     }
 
     if (_isInitialized) {
       await _speech.listen(
-        localeId: 'fr_FR', // Langue française
+        localeId: _frLocaleId,
+        listenFor: const Duration(seconds: 30), // Maximum listen duration
+        pauseFor: const Duration(seconds: 5), // Stop after 2 seconds of silence
         onResult: (result) {
-          if (result.finalResult) {
-            // Filtrer pour ne garder que les chiffres
-            //debuglog the result
-            debugPrint('Recognized: ${result.recognizedWords}');
+          debugPrint('Speech result - Final: ${result.finalResult}, Words: ${result.recognizedWords}');
+
+          // Process both partial and final results, but prefer final
+          if (result.finalResult || result.recognizedWords.isNotEmpty) {
+            // Filter to keep only numbers
             final filtered = _filterNumber(result.recognizedWords);
-            onResult(filtered);
+
+            if (filtered.isNotEmpty) {
+              // Stop listening immediately when we get a valid number
+              stop();
+
+              // Call the callback with the result
+              onResult(filtered);
+            }
           }
         },
       );
-      return true;
+    }
+  }
+
+  void _handleSpeechError(dynamic error) {
+    stop(); // Stop listening immediately
+
+    String errorMessage;
+    if (error.toString().contains('error_no_match')) {
+      errorMessage = 'Aucun mot reconnu. Basculement vers le mode clavier.';
+    } else if (error.toString().contains('error_speech_timeout')) {
+      errorMessage = 'Délai d\'attente dépassé. Basculement vers le mode clavier.';
+    } else if (error.toString().contains('error_network')) {
+      errorMessage = 'Erreur réseau. Basculement vers le mode clavier.';
+    } else if (error.toString().contains('error_audio')) {
+      errorMessage = 'Erreur audio. Vérifiez votre microphone. Basculement vers le mode clavier.';
+    } else {
+      errorMessage = 'Erreur de reconnaissance vocale. Basculement vers le mode clavier.';
     }
 
-    return false;
+    // Call error callback if set
+    _onError?.call(errorMessage);
   }
 
   String _filterNumber(String input) {
-    // Convertir les nombres écrits en chiffres en français
+    // Convert written numbers to digits in French
     Map<String, String> wordToDigit = {
       'zéro': '0',
       'un': '1',
@@ -135,15 +132,15 @@ class SpeechService {
       'cent': '100',
     };
 
-    // Convertir en minuscules pour faciliter la correspondance
+    // Convert to lowercase for easier matching
     String lowerInput = input.toLowerCase();
 
-    // Traiter les mots numériques
+    // Process numeric words
     for (var entry in wordToDigit.entries) {
       lowerInput = lowerInput.replaceAll(entry.key, entry.value);
     }
 
-    // Extraire uniquement les chiffres
+    // Extract only digits
     RegExp digitsOnly = RegExp(r'\d+');
     Iterable<Match> matches = digitsOnly.allMatches(lowerInput);
 
@@ -151,7 +148,7 @@ class SpeechService {
       return '';
     }
 
-    // Prendre le premier nombre trouvé
+    // Take the first number found
     return matches.first.group(0) ?? '';
   }
 

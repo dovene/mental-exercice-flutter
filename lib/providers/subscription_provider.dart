@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/subject.dart';
 import '../models/subscription.dart';
 
 class SubscriptionProvider extends ChangeNotifier {
@@ -25,7 +26,8 @@ class SubscriptionProvider extends ChangeNotifier {
   // Check if a subject is unlocked
   bool isSubjectUnlocked(String subjectId) {
     // Always allow access to the free subject (e.g., Addition)
-    if (subjectId == 'addition') return true;
+    if (subjectId == SubjectType.addition.name) return true;
+    if (subjectId == SubjectType.problemes.name) return true;
 
     // For other subjects, check subscription status
     return _currentSubscription != SubscriptionType.free;

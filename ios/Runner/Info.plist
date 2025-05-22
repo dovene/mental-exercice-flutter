@@ -47,9 +47,9 @@
 		<true />
 		<key>NSMicrophoneUsageDescription</key>
 		<string>Cette application a besoin d'accéder au microphone pour écouter vos réponses aux
-			questions de multiplication</string>
+			questions</string>
 		<key>NSSpeechRecognitionUsageDescription</key>
 		<string>Cette application a besoin de la reconnaissance vocale pour comprendre vos réponses
-			aux questions de multiplication</string>
+			aux questions</string>
 	</dict>
 </plist>

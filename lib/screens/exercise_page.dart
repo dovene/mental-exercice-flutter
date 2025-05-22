@@ -43,20 +43,34 @@ class _ExercisePageState extends State<ExercisePage>
   void initState() {
     super.initState();
     _controller = ExerciseController(widget.subject.type);
-    // Run after the first frame is rendered to ensure context is available
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        // Pass context to controller for permission dialogs
-        _controller.setContext(context);
-      }
-    });
-
     _initializeScoreController();
     _loadSuccessStats();
     _isProblemSuject = widget.subject.type == SubjectType.problemes;
 
     // Listen to streak changes
     _controller.addListener(_checkForStreakMilestone);
+
+    // Set up snackbar callback for speech service errors
+    _controller.setSnackbarCallback(_showSnackbar);
+  }
+
+  void _showSnackbar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: Colors.white,
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          ),
+        ),
+      );
+    }
   }
 
   void _checkForStreakMilestone() {
@@ -73,13 +87,13 @@ class _ExercisePageState extends State<ExercisePage>
       // Reset magical celebration after animation completes
       Future.delayed(
           const Duration(milliseconds: AppConstants.magicAnimationDuration),
-          () {
-        if (mounted) {
-          setState(() {
-            _showMagicalCelebration = false;
+              () {
+            if (mounted) {
+              setState(() {
+                _showMagicalCelebration = false;
+              });
+            }
           });
-        }
-      });
     }
   }
 
@@ -231,17 +245,6 @@ class _ExercisePageState extends State<ExercisePage>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Voice mode toggle
-                Row(
-                  children: [
-                    Switch(
-                      value: !controller.isKeyboardMode,
-                      onChanged: (value) => controller.toggleInputMode(value, context),
-                      activeColor: widget.subject.color,
-                    ),
-                    const Text('Mode voix'),
-                  ],
-                ),
                 // Timer enable/disable
                 Row(
                   children: [
@@ -251,6 +254,17 @@ class _ExercisePageState extends State<ExercisePage>
                       activeColor: widget.subject.color,
                     ),
                     const Text('Timer'),
+                  ],
+                ),
+                // Voice mode toggle
+                Row(
+                  children: [
+                    Switch(
+                      value: !controller.isKeyboardMode,
+                      onChanged: (value) => controller.toggleInputMode(value),
+                      activeColor: widget.subject.color,
+                    ),
+                    const Text('Mode voix'),
                   ],
                 ),
               ],
@@ -289,7 +303,7 @@ class _ExercisePageState extends State<ExercisePage>
         if (controller.exerciseRemainingTime > 0) {
           timerWidget = Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: CountdownTimer(
               totalSeconds: controller.settings.waitingTime,
               remainingSeconds: controller.exerciseRemainingTime,
@@ -301,7 +315,7 @@ class _ExercisePageState extends State<ExercisePage>
             controller.exerciseRemainingTime > 0) {
           timerWidget = Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Column(
               children: [
                 Text(
@@ -423,7 +437,7 @@ class _ExercisePageState extends State<ExercisePage>
         ),
         const SizedBox(height: 10),
         Text(
-          'J\'écoute... (${controller.lastAnswer})',
+          'J\'écoute la réponse pendant 30 secondes... (${controller.lastAnswer})',
           style: const TextStyle(
             fontSize: 16,
             fontStyle: FontStyle.italic,
@@ -462,7 +476,8 @@ class _ExercisePageState extends State<ExercisePage>
 
   String _getFeedbackText(ExerciseController controller) {
     final correctAnswer = controller.getCorrectAnswer();
-    final formattedCorrectAnswer = ExerciseController.formatDouble(correctAnswer, controller.useFrenchLocale);
+    final formattedCorrectAnswer = ExerciseController.formatDouble(
+        correctAnswer, controller.useFrenchLocale);
 
     if (controller.lastAnswer.isEmpty) {
       return 'Désolé, la bonne réponse était $formattedCorrectAnswer !';
