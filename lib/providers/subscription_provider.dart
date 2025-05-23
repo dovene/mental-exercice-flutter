@@ -47,7 +47,7 @@ class SubscriptionProvider extends ChangeNotifier {
       case SubscriptionType.family:
         return 'Famille';
       case SubscriptionType.freeForever:
-        return 'Abonnement gratuit permanent';
+        return 'Cadeau de Sika';
       default:
         return 'Inconnu';
     }

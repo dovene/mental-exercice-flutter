@@ -81,11 +81,11 @@ class SubscriptionPlan {
     return SubscriptionPlan(
       id: 'freeForever',
       storeId: 'FreeForever', // This is my free forever plan to keep hidden from users
-      name: 'Abonnement gratuit permanent',
+      name: 'Cadeau de Sika',
       description: 'Cadeau de Sika',
       price: 0,
-      type: SubscriptionType.family,
-      duration: const Duration(days: 10000000),
+      type: SubscriptionType.freeForever,
+      duration: const Duration(days: 90),
       features: [
         'Toutes les opérations',
         'Exercices illimités',
