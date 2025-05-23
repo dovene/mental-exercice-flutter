@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "988988050144",
+    "project_id": "roots-81ea6",
+    "storage_bucket": "roots-81ea6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:988988050144:android:dfb10886c3e47b14d49e85",
+        "android_client_info": {
+          "package_name": "com.dov.mathomagic"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhW8qECv7tfJC2ETXNyT5uJ7RXLjGF0cI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

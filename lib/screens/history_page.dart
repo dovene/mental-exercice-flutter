@@ -1,4 +1,5 @@
 import 'package:HelloMath/screens/controllers/exercise_controller.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 
 import '../helper/app_constants.dart';
@@ -24,11 +25,13 @@ class _HistoryPageState extends State<HistoryPage> {
     'correct': 0,
     'percentage': 0,
   };
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   @override
   void initState() {
     super.initState();
     _loadHistory();
+    _logPageView();
   }
 
   Future<void> _loadHistory() async {
@@ -53,6 +56,15 @@ class _HistoryPageState extends State<HistoryPage> {
         _isLoading = false;
       });
     }
+  }
+
+  void _logPageView() {
+    _analytics.logEvent(
+      name: 'history_page_view',
+      parameters: {
+        'subject': widget.subjectType.name,
+      },
+    );
   }
 
   Future<void> _clearHistory() async {

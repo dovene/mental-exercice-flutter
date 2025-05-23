@@ -1,6 +1,7 @@
 // ignore_for_file: unused_field
 
 import 'package:HelloMath/widgets/magical_streak_animation.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -29,6 +30,7 @@ class _ExercisePageState extends State<ExercisePage>
   late ExerciseController _controller;
   late AnimationController _scoreController;
   late Animation<double> _scoreAnimation;
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   // Statistics
   int _totalQuestions = 0;
@@ -52,6 +54,17 @@ class _ExercisePageState extends State<ExercisePage>
 
     // Set up snackbar callback for speech service errors
     _controller.setSnackbarCallback(_showSnackbar);
+    // Log page view to Firebase Analytics
+    _logPageView();
+  }
+
+  void _logPageView() {
+    _analytics.logEvent(
+      name: 'exercice_page_view',
+      parameters: {
+        'subject': widget.subject.type.name,
+      },
+    );
   }
 
   void _showSnackbar(String message) {
@@ -87,13 +100,13 @@ class _ExercisePageState extends State<ExercisePage>
       // Reset magical celebration after animation completes
       Future.delayed(
           const Duration(milliseconds: AppConstants.magicAnimationDuration),
-              () {
-            if (mounted) {
-              setState(() {
-                _showMagicalCelebration = false;
-              });
-            }
+          () {
+        if (mounted) {
+          setState(() {
+            _showMagicalCelebration = false;
           });
+        }
+      });
     }
   }
 
@@ -303,7 +316,7 @@ class _ExercisePageState extends State<ExercisePage>
         if (controller.exerciseRemainingTime > 0) {
           timerWidget = Padding(
             padding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: CountdownTimer(
               totalSeconds: controller.settings.waitingTime,
               remainingSeconds: controller.exerciseRemainingTime,
@@ -315,7 +328,7 @@ class _ExercisePageState extends State<ExercisePage>
             controller.exerciseRemainingTime > 0) {
           timerWidget = Padding(
             padding:
-            const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Column(
               children: [
                 Text(
@@ -495,11 +508,13 @@ class _ExercisePageState extends State<ExercisePage>
       final remainingForMagic = AppConstants.magicAnimationStreak -
           (controller.streak % AppConstants.magicAnimationStreak);
 
-      String baseMessage = 'Génial, La bonne réponse était bien : $displayAnswer';
+      String baseMessage =
+          'Génial, La bonne réponse était bien : $displayAnswer';
 
       // Only show the magic counter if we're not at the milestone and streak > 0
       if (remainingForMagic > 0 && controller.streak > 0) {
-        baseMessage += '\nEncore $remainingForMagic bonne${remainingForMagic > 1 ? 's' : ''} réponse${remainingForMagic > 1 ? 's' : ''} pour la magie ! ✨';
+        baseMessage +=
+            '\nEncore $remainingForMagic bonne${remainingForMagic > 1 ? 's' : ''} réponse${remainingForMagic > 1 ? 's' : ''} pour la magie ! ✨';
       }
 
       return baseMessage;

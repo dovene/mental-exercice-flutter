@@ -1,11 +1,35 @@
 import 'dart:io';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/subscription.dart';
 import '../providers/subscription_provider.dart';
 
-class SubscriptionPage extends StatelessWidget {
+class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({Key? key}) : super(key: key);
+
+  @override
+  _SubscriptionPage createState() => _SubscriptionPage();
+}
+
+class _SubscriptionPage extends State<SubscriptionPage> {
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _logPageView();
+  }
+
+  void _logPageView() {
+    final provider = Provider.of<SubscriptionProvider>(context, listen: false);
+    _analytics.logEvent(
+      name: 'subscription_page_view',
+      parameters: {
+        'current_subscription': provider.subscriptionName,
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +42,7 @@ class SubscriptionPage extends StatelessWidget {
           TextButton(
             onPressed: () {
               final provider =
-              Provider.of<SubscriptionProvider>(context, listen: false);
+                  Provider.of<SubscriptionProvider>(context, listen: false);
 
               // Handle platform-specific restore experience
               if (Platform.isIOS) {
@@ -27,8 +51,7 @@ class SubscriptionPage extends StatelessWidget {
                   builder: (context) => AlertDialog(
                     title: const Text('Restaurer les achats'),
                     content: const Text(
-                        'Cette action pourrait vous demander de vous connecter avec votre identifiant Apple. Voulez-vous continuer?'
-                    ),
+                        'Cette action pourrait vous demander de vous connecter avec votre identifiant Apple. Voulez-vous continuer?'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(context),
@@ -39,7 +62,9 @@ class SubscriptionPage extends StatelessWidget {
                           Navigator.pop(context);
                           provider.restorePurchases();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Restauration des achats en cours...')),
+                            const SnackBar(
+                                content: Text(
+                                    'Restauration des achats en cours...')),
                           );
                         },
                         child: const Text('Continuer'),
@@ -167,25 +192,25 @@ class SubscriptionPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ...plan.features.map((feature) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Theme.of(context).primaryColor,
-                    size: 16,
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        color: Theme.of(context).primaryColor,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(feature)),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(feature)),
-                ],
-              ),
-            )),
+                )),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed:
-                isCurrentPlan ? null : () => provider.buySubscription(plan),
+                    isCurrentPlan ? null : () => provider.buySubscription(plan),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo,
                   foregroundColor: Colors.white,

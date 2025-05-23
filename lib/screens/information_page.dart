@@ -1,21 +1,47 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
+
 import '../screens/privacy_policy_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../screens/subscription_page.dart';
 
-class InformationPage extends StatelessWidget {
+class InformationPage extends StatefulWidget {
   final String contactEmail = "office@inaxxe.com";
   final String contactPhone = "+33 6 60 50 66 26";
-  final String privacyPolicyUrl = "https://inaxxe.com/mathomagic/privacy-mathomagic.html";
+  final String privacyPolicyUrl =
+      "https://inaxxe.com/mathomagic/privacy-mathomagic.html";
 
   const InformationPage({Key? key}) : super(key: key);
+
+  @override
+  State<InformationPage> createState() => _InformationPageState();
+}
+
+class _InformationPageState extends State<InformationPage> {
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _logPageView();
+  }
+
+  void _logPageView() {
+    _analytics.logEvent(
+      name: 'information_page_view',
+      parameters: {
+        'page': 'Information Page',
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Informations',
+        title: const Text(
+          'Informations',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.indigo,
@@ -36,7 +62,8 @@ class InformationPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            _buildSectionTitle(context, 'Bienvenue dans notre espace informations'),
+            _buildSectionTitle(
+                context, 'Bienvenue dans notre espace informations'),
             const SizedBox(height: 24),
             _buildSubscriptionSection(context),
             const SizedBox(height: 24),
@@ -82,7 +109,8 @@ class InformationPage extends StatelessWidget {
       title: 'Gérer vos abonnements',
       icon: Icons.card_membership,
       iconColor: Colors.indigo,
-      description: 'Accédez à toutes nos formules d\'abonnement pour profiter de l\'expérience complète Math Pour Enfants.',
+      description:
+          'Accédez à toutes nos formules d\'abonnement pour profiter de l\'expérience complète Math Pour Enfants.',
       onTap: () {
         Navigator.push(
           context,
@@ -107,7 +135,8 @@ class InformationPage extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.contact_support, color: Colors.blue.shade700, size: 28),
+                Icon(Icons.contact_support,
+                    color: Colors.blue.shade700, size: 28),
                 const SizedBox(width: 12),
                 const Text(
                   'Contactez nous',
@@ -129,20 +158,20 @@ class InformationPage extends StatelessWidget {
               context,
               icon: Icons.email_outlined,
               title: 'Email',
-              subtitle: contactEmail,
+              subtitle: widget.contactEmail,
               onTap: () => _launchEmail(context),
               showCopy: true,
-              valueToCopy: contactEmail,
+              valueToCopy: widget.contactEmail,
             ),
             const SizedBox(height: 16),
             _buildContactMethod(
               context,
               icon: Icons.phone_outlined,
               title: 'Téléphone',
-              subtitle: contactPhone,
+              subtitle: widget.contactPhone,
               onTap: () => _launchPhone(context),
               showCopy: true,
-              valueToCopy: contactPhone,
+              valueToCopy: widget.contactPhone,
             ),
             const SizedBox(height: 20),
             const Divider(),
@@ -163,14 +192,14 @@ class InformationPage extends StatelessWidget {
   }
 
   Widget _buildContactMethod(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String subtitle,
-        required VoidCallback onTap,
-        bool showCopy = false,
-        String? valueToCopy,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool showCopy = false,
+    String? valueToCopy,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -236,12 +265,14 @@ class InformationPage extends StatelessWidget {
       title: 'Politique de confidentialité',
       icon: Icons.security,
       iconColor: Colors.green.shade700,
-      description: 'Consultez notre politique de confidentialité pour en savoir plus sur la façon dont nous protégeons vos données.',
+      description:
+          'Consultez notre politique de confidentialité pour en savoir plus sur la façon dont nous protégeons vos données.',
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => PrivacyPolicyPage(url: privacyPolicyUrl),
+            builder: (context) =>
+                PrivacyPolicyPage(url: widget.privacyPolicyUrl),
             settings: const RouteSettings(name: 'privacy_policy_page'),
           ),
         );
@@ -250,13 +281,13 @@ class InformationPage extends StatelessWidget {
   }
 
   Widget _buildInfoCard(
-      BuildContext context, {
-        required String title,
-        required IconData icon,
-        required Color iconColor,
-        required String description,
-        required VoidCallback onTap,
-      }) {
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required String description,
+    required VoidCallback onTap,
+  }) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(
@@ -312,7 +343,7 @@ class InformationPage extends StatelessWidget {
   Future<void> _launchEmail(BuildContext context) async {
     final Uri emailUri = Uri(
       scheme: 'mailto',
-      path: contactEmail,
+      path: widget.contactEmail,
       query: _encodeQueryParameters(<String, String>{
         'subject': 'Support Math Pour Enfants',
         'body': 'Bonjour',
@@ -323,36 +354,33 @@ class InformationPage extends StatelessWidget {
       if (await canLaunchUrl(emailUri)) {
         await launchUrl(emailUri);
       } else {
-        // Fallback: copy email to clipboard and show dialog
-        await _showContactFallback(context, 'Email', contactEmail);
+        await _showContactFallback(context, 'Email', widget.contactEmail);
       }
     } catch (e) {
-      await _showContactFallback(context, 'Email', contactEmail);
+      await _showContactFallback(context, 'Email', widget.contactEmail);
     }
   }
 
   Future<void> _launchPhone(BuildContext context) async {
-    // Clean phone number for tel: scheme
-    final String cleanPhone = contactPhone.replaceAll(RegExp(r'[^\d+]'), '');
+    final String cleanPhone =
+        widget.contactPhone.replaceAll(RegExp(r'[^\d+]'), '');
     final Uri phoneUri = Uri(scheme: 'tel', path: cleanPhone);
 
     try {
       if (await canLaunchUrl(phoneUri)) {
         await launchUrl(phoneUri);
       } else {
-        // Fallback: copy phone to clipboard and show dialog
-        await _showContactFallback(context, 'Téléphone', contactPhone);
+        await _showContactFallback(context, 'Téléphone', widget.contactPhone);
       }
     } catch (e) {
-      await _showContactFallback(context, 'Téléphone', contactPhone);
+      await _showContactFallback(context, 'Téléphone', widget.contactPhone);
     }
   }
 
-  Future<void> _showContactFallback(BuildContext context, String type, String value) async {
-    // Copy to clipboard
+  Future<void> _showContactFallback(
+      BuildContext context, String type, String value) async {
     await Clipboard.setData(ClipboardData(text: value));
 
-    // Show dialog with options
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -362,7 +390,8 @@ class InformationPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Aucune application disponible pour ouvrir automatiquement ce lien.'),
+              Text(
+                  'Aucune application disponible pour ouvrir automatiquement ce lien.'),
               const SizedBox(height: 16),
               Text('$type: $value'),
               const SizedBox(height: 8),
@@ -384,7 +413,7 @@ class InformationPage extends StatelessWidget {
   String? _encodeQueryParameters(Map<String, String> params) {
     return params.entries
         .map((MapEntry<String, String> e) =>
-    '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
   }
 }

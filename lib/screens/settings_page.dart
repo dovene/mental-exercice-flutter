@@ -1,3 +1,4 @@
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/operations_settings.dart';
@@ -24,11 +25,21 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late OperationSettings _settings;
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   @override
   void initState() {
     super.initState();
     _settings = widget.initialSettings.copyWith();
+  }
+
+  void _logPageView() {
+    _analytics.logEvent(
+      name: 'settings_page_view',
+      parameters: {
+        'subject': widget.subject.type.name,
+      },
+    );
   }
 
   @override
@@ -110,18 +121,22 @@ class _SettingsPageState extends State<SettingsPage> {
           Consumer<SubscriptionProvider>(
             builder: (context, subscriptionProvider, child) {
               final isProbleme = widget.subject.type == SubjectType.problemes;
-              final isSubscribed = SubscriptionType.free != subscriptionProvider.currentSubscription;
+              final isSubscribed = SubscriptionType.free !=
+                  subscriptionProvider.currentSubscription;
               final isLocked = isProbleme && !isSubscribed;
 
               return Stack(
                 children: [
                   ElevatedButton(
-                    onPressed: isLocked ? null : () {
-                      widget.onSettingsChanged(_settings);
-                      Navigator.pop(context);
-                    },
+                    onPressed: isLocked
+                        ? null
+                        : () {
+                            widget.onSettingsChanged(_settings);
+                            Navigator.pop(context);
+                          },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isLocked ? Colors.grey : widget.subject.color,
+                      backgroundColor:
+                          isLocked ? Colors.grey : widget.subject.color,
                       padding: const EdgeInsets.symmetric(vertical: 16.0),
                       disabledBackgroundColor: Colors.grey,
                     ),
@@ -137,7 +152,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           const SizedBox(width: 8),
                         ],
                         Text(
-                          isLocked ? 'Premium requis' : 'Enregistrer les paramètres',
+                          isLocked
+                              ? 'Premium requis'
+                              : 'Enregistrer les paramètres',
                           style: const TextStyle(color: Colors.white),
                         ),
                       ],
@@ -295,7 +312,7 @@ class _SettingsPageState extends State<SettingsPage> {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0),
           child:
-          Text('Sélectionnez les opérations à inclure dans les problèmes:'),
+              Text('Sélectionnez les opérations à inclure dans les problèmes:'),
         ),
         CheckboxListTile(
           title: const Text('Addition'),
@@ -344,8 +361,6 @@ class _SettingsPageState extends State<SettingsPage> {
       ],
     );
   }
-
-
 
   // Show subscription dialog similar to welcome page
   void _showSubscriptionDialog(BuildContext context) {

@@ -204,7 +204,7 @@ class ExerciseController with ChangeNotifier {
   Future<void> _loadScore() async {
     try {
       final stats =
-      await DatabaseHelper.instance.getStats(subjectType: subjectType);
+          await DatabaseHelper.instance.getStats(subjectType: subjectType);
       _score = stats['percentage'] as int;
       notifyListeners();
     } catch (e) {
@@ -227,12 +227,14 @@ class ExerciseController with ChangeNotifier {
         bool isInitialized = await _speechService.initialize();
         if (!isInitialized) {
           // Show snackbar notification if initialization fails
-          _onShowSnackbar?.call('Impossible d\'initialiser la reconnaissance vocale. Vérifiez les permissions du microphone.');
+          _onShowSnackbar?.call(
+              'Impossible d\'initialiser la reconnaissance vocale. Vérifiez les permissions du microphone.');
           return; // Don't switch to voice mode if initialization failed
         }
       } catch (e) {
         debugPrint('Speech service initialization error: $e');
-        _onShowSnackbar?.call('Erreur lors de l\'initialisation de la reconnaissance vocale.');
+        _onShowSnackbar?.call(
+            'Erreur lors de l\'initialisation de la reconnaissance vocale.');
         return;
       }
     }
@@ -342,7 +344,7 @@ class ExerciseController with ChangeNotifier {
         maxNum = 9999; // Multiplications à plusieurs chiffres
       } else if (subjectType == SubjectType.division) {
         maxNum =
-        48; // Divisions limitées pour obtenir des résultats raisonnables
+            48; // Divisions limitées pour obtenir des résultats raisonnables
       }
     } else if (_settings.isHardMode) {
       maxNum = 9999; // Mode difficile
@@ -584,7 +586,7 @@ class ExerciseController with ChangeNotifier {
         result = _currentNumber1 + _currentNumber2;
         break;
       case SubjectType.soustraction:
-      // Fix for floating-point precision issues in subtraction
+        // Fix for floating-point precision issues in subtraction
         String num1Str = _currentNumber1.toStringAsFixed(2);
         String num2Str = _currentNumber2.toStringAsFixed(2);
         double n1 = double.parse(num1Str);
@@ -592,7 +594,7 @@ class ExerciseController with ChangeNotifier {
         result = double.parse((n1 - n2).toStringAsFixed(2));
         break;
       case SubjectType.division:
-      // Fix for floating-point precision issues in division
+        // Fix for floating-point precision issues in division
         if (_settings.decimalMode) {
           String num1Str = _currentNumber1.toStringAsFixed(2);
           String num2Str = _currentNumber2.toStringAsFixed(2);

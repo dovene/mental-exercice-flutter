@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,6 +23,7 @@ class SubscriptionProvider extends ChangeNotifier {
   SubscriptionType get currentSubscription => _currentSubscription;
   DateTime? get expiryDate => _expiryDate;
   bool get isLoading => _isLoading;
+  final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
   // Check if a subject is unlocked
   bool isSubjectUnlocked(String subjectId) {
@@ -56,7 +58,6 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> _initialize() async {
-
     if (Platform.isAndroid) {
       InAppPurchase.instance.isAvailable().then((available) {
         if (available) {
@@ -129,7 +130,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
     try {
       final ProductDetailsResponse response =
-      await _inAppPurchase.queryProductDetails(productIds);
+          await _inAppPurchase.queryProductDetails(productIds);
 
       if (response.notFoundIDs.isNotEmpty) {
         debugPrint('Products not found: ${response.notFoundIDs}');
@@ -151,9 +152,18 @@ class SubscriptionProvider extends ChangeNotifier {
         if (purchaseDetails.status == PurchaseStatus.error) {
           // Handle error
           debugPrint('Purchase error: ${purchaseDetails.error?.message}');
+          // Log error to Firebase Analytics
+          _analytics.logEvent(
+            name: 'subscription_purchase_error',
+            parameters: {
+              'error_message': purchaseDetails.error?.message ?? '',
+              'product_id': purchaseDetails.productID,
+            },
+          );
         } else if (purchaseDetails.status == PurchaseStatus.purchased ||
             purchaseDetails.status == PurchaseStatus.restored) {
-          debugPrint('Purchase successful/restored: ${purchaseDetails.productID}');
+          debugPrint(
+              'Purchase successful/restored: ${purchaseDetails.productID}');
           _handleSuccessfulPurchase(purchaseDetails);
         }
 
@@ -176,7 +186,7 @@ class SubscriptionProvider extends ChangeNotifier {
   Future<void> _handleSuccessfulPurchase(PurchaseDetails purchase) async {
     // Find which plan was purchased
     final plan = _plans.firstWhere(
-          (plan) => plan.storeId == purchase.productID,
+      (plan) => plan.storeId == purchase.productID,
       orElse: () => SubscriptionPlan.free(),
     );
 
@@ -192,6 +202,17 @@ class SubscriptionProvider extends ChangeNotifier {
 
     // Save to local storage
     await _saveSubscriptionStatus();
+
+    // Log purchase event to Firebase Analytics
+    _analytics.logEvent(
+      name: 'subscription_purchase_success',
+      parameters: {
+        'subscription_type': plan.type.name,
+        'expiry_date': _expiryDate?.toIso8601String() ?? '',
+        'product_id': purchase.productID,
+        'purchase_date': now.toIso8601String(),
+      },
+    );
 
     notifyListeners();
   }
@@ -212,7 +233,8 @@ class SubscriptionProvider extends ChangeNotifier {
 
   // Initiate a purchase
   Future<void> buySubscription(SubscriptionPlan plan) async {
-    if (plan.type == SubscriptionType.free || plan.type == SubscriptionType.freeForever) {
+    if (plan.type == SubscriptionType.free ||
+        plan.type == SubscriptionType.freeForever) {
       _handleSuccessfulFreeSubscription(plan);
       return;
     }
@@ -220,7 +242,7 @@ class SubscriptionProvider extends ChangeNotifier {
     try {
       // Find the corresponding product
       final product = _products.firstWhere(
-            (product) => product.id == plan.storeId,
+        (product) => product.id == plan.storeId,
       );
 
       // Create purchase param
