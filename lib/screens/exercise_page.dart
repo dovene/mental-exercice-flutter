@@ -72,7 +72,7 @@ class _ExercisePageState extends State<ExercisePage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.black,
           duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: 'OK',
@@ -481,6 +481,7 @@ class _ExercisePageState extends State<ExercisePage>
           style: TextStyle(
             fontSize: 16,
             color: controller.isCorrect! ? Colors.green : Colors.red,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],

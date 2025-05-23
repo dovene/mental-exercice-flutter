@@ -31,6 +31,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _settings = widget.initialSettings.copyWith();
+    _logPageView();
   }
 
   void _logPageView() {

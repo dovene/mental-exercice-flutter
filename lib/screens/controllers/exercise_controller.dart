@@ -165,6 +165,12 @@ class ExerciseController with ChangeNotifier {
 
   // Toggle timer enabled/disabled
   void toggleTimer(bool enabled) {
+    // If voice mode is enabled, block timer activation
+    if (enabled && !_isKeyboardMode) {
+      _onShowSnackbar?.call('Impossible d\'activer le timer en mode voix');
+      return;
+    }
+
     _isTimerEnabled = enabled;
     _saveTimerPreference();
 
@@ -221,6 +227,19 @@ class ExerciseController with ChangeNotifier {
   }
 
   void toggleInputMode(bool voiceMode) async {
+    // If switching to voice mode, check if timer is enabled
+    if (voiceMode && _isTimerEnabled) {
+      // Switch off the timer and display message
+      _isTimerEnabled = false;
+      _saveTimerPreference();
+
+      // Cancel any active timer
+      _exerciseTimer?.cancel();
+      _exerciseRemainingTime = 0;
+
+      _onShowSnackbar?.call('Timer désactivé pour activer le mode voix');
+    }
+
     // If switching to voice mode, initialize speech service first
     if (voiceMode) {
       try {
