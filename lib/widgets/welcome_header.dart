@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/subscription.dart';
@@ -27,6 +28,8 @@ class _WelcomeHeaderState extends State<WelcomeHeader> {
           Provider.of<SubscriptionProvider>(context, listen: false);
       // Grant the freeForever subscription:
       provider.buySubscription(SubscriptionPlan.freeForever());
+      // log the event to Firebase Analytics
+      FirebaseAnalytics.instance.logEvent(name: 'free_forever_subscription');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
