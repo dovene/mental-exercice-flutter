@@ -23,9 +23,9 @@ class WelcomeHeader extends StatelessWidget {
                 child: SizedBox(), // For centering
               ),
               const Text(
-                'Math Pour Enfants',
+                'Maths Pour Enfants',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: Colors.indigo,
                 ),

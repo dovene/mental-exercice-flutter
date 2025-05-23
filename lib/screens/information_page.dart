@@ -110,7 +110,7 @@ class _InformationPageState extends State<InformationPage> {
       icon: Icons.card_membership,
       iconColor: Colors.indigo,
       description:
-          'Accédez à toutes nos formules d\'abonnement pour profiter de l\'expérience complète Math Pour Enfants.',
+          'Accédez à toutes nos formules d\'abonnement pour profiter de l\'expérience complète Maths Pour Enfants.',
       onTap: () {
         Navigator.push(
           context,
@@ -345,7 +345,7 @@ class _InformationPageState extends State<InformationPage> {
       scheme: 'mailto',
       path: widget.contactEmail,
       query: _encodeQueryParameters(<String, String>{
-        'subject': 'Support Math Pour Enfants',
+        'subject': 'Support Maths Pour Enfants',
         'body': 'Bonjour',
       }),
     );

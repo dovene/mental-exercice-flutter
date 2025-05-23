@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
           ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
         ],
         child: MaterialApp(
-          title: 'Math Pour Enfants',
+          title: 'Maths Pour Enfants',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             primarySwatch: Colors.blue,

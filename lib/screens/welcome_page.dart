@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Add this import
 import '../models/subject.dart';
 import '../services/database_helper.dart';
 import 'exercise_page.dart';
@@ -31,6 +32,13 @@ class _WelcomePageState extends State<WelcomePage>
   void initState() {
     super.initState();
 
+    // Set the status bar to have a white background and dark content
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Color(0xFFFAFAFA),
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+    ));
+
     // Background animation controller with original slow speed
     _backgroundAnimationController = AnimationController(
       vsync: this,
@@ -58,7 +66,7 @@ class _WelcomePageState extends State<WelcomePage>
     try {
       for (var subjectType in SubjectType.values) {
         final stats =
-            await DatabaseHelper.instance.getStats(subjectType: subjectType);
+        await DatabaseHelper.instance.getStats(subjectType: subjectType);
         setState(() {
           _subjectStats[subjectType] = stats;
         });
@@ -76,29 +84,36 @@ class _WelcomePageState extends State<WelcomePage>
     final filteredSubjects = _selectedClassLevel == "Tous"
         ? subjects
         : subjects
-            .where((s) => s.classLevels.contains(_selectedClassLevel))
-            .toList();
+        .where((s) => s.classLevels.contains(_selectedClassLevel))
+        .toList();
 
     final screenSize = MediaQuery.of(context).size;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          AnimatedBackground(
-            animationController: _backgroundAnimationController,
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                WelcomeHeader(screenSize: screenSize),
-                _buildFilterSection(),
-                Expanded(
-                  child: _buildSubjectGrid(filteredSubjects),
-                ),
-              ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFFAFAFA),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+      child: Scaffold(
+        body: Stack(
+          children: [
+            AnimatedBackground(
+              animationController: _backgroundAnimationController,
             ),
-          ),
-        ],
+            SafeArea(
+              child: Column(
+                children: [
+                  WelcomeHeader(screenSize: screenSize),
+                  _buildFilterSection(),
+                  Expanded(
+                    child: _buildSubjectGrid(filteredSubjects),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -114,14 +129,14 @@ class _WelcomePageState extends State<WelcomePage>
             child: Row(
               children: _classLevels
                   .map((level) => ClassFilterChip(
-                        level: level,
-                        isSelected: _selectedClassLevel == level,
-                        onSelected: (selected) {
-                          setState(() {
-                            _selectedClassLevel = selected ? level : "Tous";
-                          });
-                        },
-                      ))
+                level: level,
+                isSelected: _selectedClassLevel == level,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedClassLevel = selected ? level : "Tous";
+                  });
+                },
+              ))
                   .toList(),
             ),
           ),
@@ -162,6 +177,14 @@ class _WelcomePageState extends State<WelcomePage>
         builder: (context) => ExercisePage(subject: subject),
         settings: RouteSettings(name: 'exercise_${subject.type}'),
       ),
-    ).then((_) => _loadAllSubjectStats());
+    ).then((_) {
+      // Restore the white status bar when returning from exercise page
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFFFAFAFA),
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ));
+      _loadAllSubjectStats();
+    });
   }
 }
